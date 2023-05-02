@@ -2,21 +2,30 @@
 // to get started and then uncomment the line below.
 // import "./user_socket.js"
 
-// You can include dependencies in two ways.
-//
-// The simplest option is to put them in assets/vendor and
-// import them using relative paths:
-//
-//     import "../vendor/some-package.js"
-//
-// Alternatively, you can `npm install some-package --prefix assets` and import
-// them using a path starting with the package name:
-//
-//     import "some-package"
-//
-
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
+
+const gameContainer = document.querySelector(".game-container");
+const gameWidth = 600;
+const gameHeight = 600;
+
+const app = new PIXI.Application({width: gameWidth, height: gameHeight, backgroundColor: 0x22ffdd});
+gameContainer.appendChild(app.view);
+
+const sprite = PIXI.Sprite.from("/images/cards/AS.svg");
+sprite.scale.set(0.35, 0.35);
+sprite.anchor.set(0.5);
+sprite.x = 300;
+sprite.y = 300;
+app.stage.addChild(sprite);
+
+let elapsed = 0.0;
+
+app.ticker.add(delta => {
+  elapsed += delta;
+  sprite.x = 300 + Math.cos(elapsed /50) * 100;
+});
+
 // Establish Phoenix Socket and LiveView configuration.
 // import {Socket} from "phoenix"
 // import {LiveSocket} from "phoenix_live_view"
