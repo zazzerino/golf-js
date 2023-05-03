@@ -1,2 +1,6 @@
 /* css/app.css */
-/*# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFtdLAogICJzb3VyY2VzQ29udGVudCI6IFtdLAogICJtYXBwaW5ncyI6ICIiLAogICJuYW1lcyI6IFtdCn0K */
+.game-container {
+  min-width: 600px;
+  min-height: 600px;
+}
+/*# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vLi4vYXNzZXRzL2Nzcy9hcHAuY3NzIl0sCiAgInNvdXJjZXNDb250ZW50IjogWyIuZ2FtZS1jb250YWluZXIge1xuICBtaW4td2lkdGg6IDYwMHB4O1xuICBtaW4taGVpZ2h0OiA2MDBweDtcbn0iXSwKICAibWFwcGluZ3MiOiAiO0FBQUE7QUFDRTtBQUNBO0FBQUE7IiwKICAibmFtZXMiOiBbXQp9Cg== */

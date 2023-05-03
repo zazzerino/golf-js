@@ -55,5 +55,7 @@ defmodule GolfWeb.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl true
-  def id(_socket), do: nil
+  def id(%{assigns: %{user_id: user_id}}) do
+    "user_socket:#{user_id}"
+  end
 end

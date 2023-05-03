@@ -2,7 +2,7 @@
 import "phoenix_html";
 import { PIXI } from "../vendor/pixi";
 import "../css/app.css";
-import "./user_socket.js"
+import { socket, channel } from "./user_socket.js";
 
 const gameWidth = 600;
 const gameHeight = 600;
@@ -41,6 +41,9 @@ app.ticker.add(delta => {
   deck.x = 300 + Math.cos(elapsed / 50) * 100;
   // deck.y = 300 + Math.cos(elapsed / 50) * 100;
 });
+
+// channel.push("shout", {message: "howdy"});
+// channel.on("shout", payload => console.log(payload));
 
 // const cardNames = [
 //   "2B",

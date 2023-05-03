@@ -2,12 +2,8 @@ defmodule GolfWeb.RoomChannel do
   use GolfWeb, :channel
 
   @impl true
-  def join("room:lobby", payload, socket) do
-    if authorized?(payload) do
-      {:ok, socket}
-    else
-      {:error, %{reason: "unauthorized"}}
-    end
+  def join("room:lobby", _, socket) do
+    {:ok, socket}
   end
 
   # Channels can be used in a request/response fashion
@@ -25,8 +21,17 @@ defmodule GolfWeb.RoomChannel do
     {:noreply, socket}
   end
 
+  # @impl true
+  # def join("room:lobby", payload, socket) do
+  #   if authorized?(payload) do
+  #     {:ok, socket}
+  #   else
+  #     {:error, %{reason: "unauthorized"}}
+  #   end
+  # end
+
   # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
-  end
+  # defp authorized?(payload) do
+  #   true
+  # end
 end
