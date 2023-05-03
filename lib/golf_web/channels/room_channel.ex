@@ -21,6 +21,12 @@ defmodule GolfWeb.RoomChannel do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_in("create_game", _, socket) do
+    broadcast(socket, "game", %{foo: "bar"})
+    {:noreply, socket}
+  end
+
   # @impl true
   # def join("room:lobby", payload, socket) do
   #   if authorized?(payload) do

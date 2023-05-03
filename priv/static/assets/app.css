@@ -1,6 +1,15 @@
 /* css/app.css */
+* {
+  margin: 0;
+  padding: 0;
+}
+body {
+  margin: 1rem;
+  display: flex;
+  flex-direction: column;
+}
 .game-container {
   min-width: 600px;
   min-height: 600px;
 }
-/*# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vLi4vYXNzZXRzL2Nzcy9hcHAuY3NzIl0sCiAgInNvdXJjZXNDb250ZW50IjogWyIuZ2FtZS1jb250YWluZXIge1xuICBtaW4td2lkdGg6IDYwMHB4O1xuICBtaW4taGVpZ2h0OiA2MDBweDtcbn0iXSwKICAibWFwcGluZ3MiOiAiO0FBQUE7QUFDRTtBQUNBO0FBQUE7IiwKICAibmFtZXMiOiBbXQp9Cg== */
+/*# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vLi4vYXNzZXRzL2Nzcy9hcHAuY3NzIl0sCiAgInNvdXJjZXNDb250ZW50IjogWyIqIHtcbiAgbWFyZ2luOiAwO1xuICBwYWRkaW5nOiAwO1xufVxuXG5ib2R5IHtcbiAgbWFyZ2luOiAxcmVtO1xuICBkaXNwbGF5OiBmbGV4O1xuICBmbGV4LWRpcmVjdGlvbjogY29sdW1uO1xufVxuXG4uZ2FtZS1jb250YWluZXIge1xuICBtaW4td2lkdGg6IDYwMHB4O1xuICBtaW4taGVpZ2h0OiA2MDBweDtcbn0iXSwKICAibWFwcGluZ3MiOiAiO0FBQUE7QUFDRTtBQUNBO0FBQUE7QUFHRjtBQUNFO0FBQ0E7QUFDQTtBQUFBO0FBR0Y7QUFDRTtBQUNBO0FBQUE7IiwKICAibmFtZXMiOiBbXQp9Cg== */

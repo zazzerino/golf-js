@@ -5,8 +5,8 @@ defmodule Golf.Games do
                   suit <- ~w(C D H S),
                   do: rank <> suit
 
-  @decks_to_use 2
-  def decks_to_use, do: @decks_to_use
+  @num_decks_to_use 2
+  def num_decks_to_use, do: @num_decks_to_use
 
   @max_players 4
   def max_players, do: @max_players

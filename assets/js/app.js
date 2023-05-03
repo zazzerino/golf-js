@@ -2,45 +2,60 @@
 import "phoenix_html";
 import { PIXI } from "../vendor/pixi";
 import "../css/app.css";
-import { socket, channel } from "./user_socket.js";
+import { channel } from "./user_socket.js";
 
-const gameWidth = 600;
-const gameHeight = 600;
+const createGameButton = document.querySelector(".create-game-button");
 
-const app = new PIXI.Application({
-  width: gameWidth, 
-  height: gameHeight, 
-  backgroundColor: 0x22ffdd,
-  antialias: true,
-});
+if (createGameButton) {
+  createGameButton.addEventListener("click", _ => {
+    channel.push("create_game", {});
+  });
+}
+
+channel.on("game", payload => {
+  console.log("game", payload);
+})
 
 const gameContainer = document.querySelector(".game-container");
-gameContainer.appendChild(app.view);
 
-function makeCardSprite(cardName, x = 0, y = 0) {
-  const sprite = PIXI.Sprite.from(`/images/cards/${cardName}.svg`);
-  sprite.scale.set(0.4, 0.4);
-  sprite.anchor.set(0.5);
-  sprite.x = x;
-  sprite.y = y;
-  return sprite;
+if (gameContainer) {
+  const gameWidth = 600;
+  const gameHeight = 600;
+  
+  const app = new PIXI.Application({
+    width: gameWidth, 
+    height: gameHeight, 
+    backgroundColor: 0x22ffdd,
+    antialias: true,
+  });
+  
+  gameContainer.appendChild(app.view);
+  
+  function makeCardSprite(cardName, x = 0, y = 0) {
+    const sprite = PIXI.Sprite.from(`/images/cards/${cardName}.svg`);
+    sprite.scale.set(0.4, 0.4);
+    sprite.anchor.set(0.5);
+    sprite.x = x;
+    sprite.y = y;
+    return sprite;
+  }
+  
+  function drawDeck(container) {
+    const sprite = makeCardSprite("2B", 300, 300);
+    container.addChild(sprite);
+    return sprite;
+  }
+  
+  const deck = drawDeck(app.stage);
+  
+  let elapsed = 0.0;
+  
+  app.ticker.add(delta => {
+    elapsed += delta;
+    deck.x = 300 + Math.cos(elapsed / 50) * 100;
+    // deck.y = 300 + Math.cos(elapsed / 50) * 100;
+  });
 }
-
-function drawDeck(container) {
-  const sprite = makeCardSprite("2B", 300, 300);
-  container.addChild(sprite);
-  return sprite;
-}
-
-const deck = drawDeck(app.stage);
-
-let elapsed = 0.0;
-
-app.ticker.add(delta => {
-  elapsed += delta;
-  deck.x = 300 + Math.cos(elapsed / 50) * 100;
-  // deck.y = 300 + Math.cos(elapsed / 50) * 100;
-});
 
 // channel.push("shout", {message: "howdy"});
 // channel.on("shout", payload => console.log(payload));

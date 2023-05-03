@@ -1,6 +1,7 @@
 defmodule GolfWeb.UserAuth do
   use GolfWeb, :verified_routes
   import Plug.Conn
+  alias Golf.Users
 
   def put_user_id(conn, _) do
     if user_id = get_session(conn, :user_id) do
@@ -17,6 +18,7 @@ defmodule GolfWeb.UserAuth do
   def put_user_token(conn, _) do
     if user_id = conn.assigns[:user_id] do
       token = Phoenix.Token.sign(conn, "user socket", user_id)
+      {:ok, _} = Users.create_user_token(user_id, token)
       assign(conn, :user_token, token)
     else
       conn
