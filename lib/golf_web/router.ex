@@ -8,6 +8,8 @@ defmodule GolfWeb.Router do
     plug :put_root_layout, {GolfWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :put_user_id
+    plug :put_user_token
   end
 
   pipeline :api do
