@@ -9,6 +9,10 @@ body {
   flex-direction: column;
 }
 
+#flash {
+  cursor: pointer;
+}
+
 .game-container {
   min-width: 600px;
   min-height: 600px;

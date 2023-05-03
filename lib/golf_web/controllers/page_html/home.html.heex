@@ -1,3 +1,6 @@
 <h2>Golf</h2>
 
-<button class="create-game-button">Create Game</button>
+<form action="/games" method="post">
+  <input name="_csrf_token" type="hidden" value={get_csrf_token()} />
+  <button type="submit">Create Game</button>
+</form>

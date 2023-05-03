@@ -4,11 +4,11 @@ import { PIXI } from "../vendor/pixi";
 import "../css/app.css";
 import { channel } from "./user_socket.js";
 
-const createGameButton = document.querySelector(".create-game-button");
+const flash = document.querySelector("#flash");
 
-if (createGameButton) {
-  createGameButton.addEventListener("click", _ => {
-    channel.push("create_game", {});
+if (flash) {
+  flash.addEventListener("click", _ => {
+    flash.style.display = "none";
   });
 }
 

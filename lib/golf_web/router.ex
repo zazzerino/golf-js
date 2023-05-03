@@ -22,6 +22,7 @@ defmodule GolfWeb.Router do
     get "/", PageController, :home
 
     get "/games/:id", GameController, :show
+    post "/games", GameController, :create
   end
 
   # Other scopes may use custom stacks.

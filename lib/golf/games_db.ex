@@ -9,7 +9,7 @@ defmodule Golf.GamesDb do
     Repo.get(Game, game_id)
   end
 
-  def create_game(user) do
+  def create_game(user_id) do
     deck =
       num_decks_to_use()
       |> new_deck()
@@ -18,7 +18,7 @@ defmodule Golf.GamesDb do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:game, %Game{deck: deck})
     |> Ecto.Multi.insert(:player, fn %{game: game} ->
-      Ecto.build_assoc(game, :players, %{user_id: user.id, turn: 0, host?: true})
+      Ecto.build_assoc(game, :players, %{user_id: user_id, turn: 0, host?: true})
     end)
     |> Repo.transaction()
   end
