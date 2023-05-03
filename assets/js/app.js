@@ -1,11 +1,9 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
-// to get started and then uncomment the line below.
-// import "./user_socket.js"
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html";
 import { PIXI } from "../vendor/pixi";
 import "../css/app.css";
+import "./user_socket.js"
 
 const gameWidth = 600;
 const gameHeight = 600;
