@@ -14,6 +14,7 @@ defmodule GolfWeb.GameChannel do
     game_id = socket.assigns.game.id
     game = GamesDb.get_game(game_id)
     {:ok, %{game: game}} = GamesDb.start_game(game)
+    game = GamesDb.get_game(game.id)
     broadcast!(socket, "game_started", %{game: game})
     {:noreply, socket}
   end
