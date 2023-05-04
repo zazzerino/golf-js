@@ -4,6 +4,7 @@ defmodule Golf.Games.Game do
 
   @statuses [:init, :flip2, :take, :hold, :flip, :last_take, :last_hold, :over]
 
+  @derive {Jason.Encoder, only: [:status, :turn, :deck, :table_cards, :players]}
   schema "games" do
     field :status, Ecto.Enum, values: @statuses, default: :init
     field :turn, :integer, default: 0

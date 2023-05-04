@@ -1,13 +1,6 @@
 import {Socket} from "phoenix";
 
 const socket = new Socket("/socket", {params: {token: window.userToken}});
-
 socket.connect();
 
-const channel = socket.channel("room:lobby", {});
-
-channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) });
-
-export { socket, channel };
+export { socket };

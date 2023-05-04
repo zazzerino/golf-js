@@ -3,10 +3,45 @@ defmodule Golf.GamesDb do
   import Golf.Games
 
   alias Golf.Repo
-  alias Golf.Games.Game
+  alias Golf.Users.User
+  alias Golf.Games.{Game, Player, JoinRequest, ChatMessage}
+
+  def players_query(game_id) do
+    from p in Player,
+      where: [game_id: ^game_id],
+      order_by: p.turn,
+      join: u in User,
+      on: [id: p.user_id],
+      select: %Player{p | username: u.username}
+  end
+
+  def join_requests_query(game_id) do
+    from(jr in JoinRequest,
+      where: [game_id: ^game_id, confirmed?: false],
+      join: u in User,
+      on: [id: jr.user_id],
+      order_by: jr.inserted_at,
+      select: %JoinRequest{jr | username: u.username}
+    )
+  end
+
+  def chat_messages_query(game_id) do
+    from(cm in ChatMessage,
+      where: [game_id: ^game_id],
+      join: u in User,
+      on: [id: cm.user_id],
+      order_by: [desc: cm.inserted_at],
+      select: %ChatMessage{cm | username: u.username}
+    )
+  end
 
   def get_game(game_id) do
     Repo.get(Game, game_id)
+    |> Repo.preload(
+      players: players_query(game_id),
+      join_requests: join_requests_query(game_id),
+      chat_messages: chat_messages_query(game_id)
+    )
   end
 
   def create_game(user_id) do
@@ -23,24 +58,33 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  # def create_game(%User{} = user) do
-  #   deck = new_deck(decks_to_use()) |> Enum.shuffle()
+  def start_game(%Game{status: :init} = game) do
+    num_cards_to_deal = hand_size() * length(game.players)
+    {cards, deck} = Enum.split(game.deck, num_cards_to_deal)
 
-  #   {:ok, %{game: game} = multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:game, %Game{status: :init, deck: deck, turn: 0})
-  #     |> Ecto.Multi.insert(:player, fn %{game: game} ->
-  #       Ecto.build_assoc(game, :players, %{user_id: user.id, turn: 0, host?: true})
-  #     end)
-  #     |> Repo.transaction()
+    {:ok, card, deck} = deal_from_deck(deck)
+    table_cards = [card | game.table_cards]
 
-  #   broadcast_game_created(game.id)
-  #   {:ok, multi}
-  # end
+    hands =
+      cards
+      |> Enum.map(fn name -> %{"name" => name, "face_up?" => false} end)
+      |> Enum.chunk_every(hand_size())
 
-  # alias Golf.Repo
-  # alias Golf.Users.User
-  # alias Golf.Games.{Game, Player, Event, JoinRequest, ChatMessage}
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :flip2, deck: deck, table_cards: table_cards}))
+    |> update_player_hands(game.players, hands)
+    |> Repo.transaction()
+  end
+
+  defp update_player_hands(multi, players, hands) do
+    changesets =
+      Enum.zip(players, hands)
+      |> Enum.map(fn {player, hand} -> Player.changeset(player, %{hand: hand}) end)
+
+    Enum.reduce(changesets, multi, fn cs, multi ->
+      Ecto.Multi.update(multi, {:player, cs.data.id}, cs)
+    end)
+  end
 
   # pubsub broadcasts
 
@@ -77,15 +121,6 @@ defmodule Golf.GamesDb do
 
   # # db queries
 
-  # def players_query(game_id) do
-  #   from p in Player,
-  #     where: [game_id: ^game_id],
-  #     order_by: p.turn,
-  #     join: u in User,
-  #     on: [id: p.user_id],
-  #     select: %Player{p | username: u.username}
-  # end
-
   # def player_query(game_id, user_id) do
   #   from p in Player, where: [game_id: ^game_id, user_id: ^user_id]
   # end
@@ -95,39 +130,11 @@ defmodule Golf.GamesDb do
   #   |> Repo.one()
   # end
 
-  # def unconfirmed_join_requests_query(game_id) do
-  #   from(jr in JoinRequest,
-  #     where: [game_id: ^game_id, confirmed?: false],
-  #     join: u in User,
-  #     on: [id: jr.user_id],
-  #     order_by: jr.inserted_at,
-  #     select: %JoinRequest{jr | username: u.username}
-  #   )
-  # end
-
   # def get_unconfirmed_join_requests(game_id) do
   #   unconfirmed_join_requests_query(game_id)
   #   |> Repo.all()
   # end
 
-  # def chat_messages_query(game_id) do
-  #   from(cm in ChatMessage,
-  #     where: [game_id: ^game_id],
-  #     join: u in User,
-  #     on: [id: cm.user_id],
-  #     order_by: [desc: cm.inserted_at],
-  #     select: %ChatMessage{cm | username: u.username}
-  #   )
-  # end
-
-  # def get_game(game_id) do
-  #   Repo.get(Game, game_id)
-  #   |> Repo.preload(
-  #     players: players_query(game_id),
-  #     join_requests: unconfirmed_join_requests_query(game_id),
-  #     chat_messages: chat_messages_query(game_id)
-  #   )
-  # end
 
   # def get_chat_message(message_id) do
   #   from(cm in ChatMessage,
@@ -202,16 +209,6 @@ defmodule Golf.GamesDb do
   #   {:ok, message} = Repo.insert(message)
   #   broadcast_chat_message(message.id)
   #   {:ok, message}
-  # end
-
-  # defp update_player_hands(multi, players, hands) do
-  #   changesets =
-  #     Enum.zip(players, hands)
-  #     |> Enum.map(fn {player, hand} -> Player.changeset(player, %{hand: hand}) end)
-
-  #   Enum.reduce(changesets, multi, fn cs, multi ->
-  #     Ecto.Multi.update(multi, {:player, cs.data.id}, cs)
-  #   end)
   # end
 
   # def delete_game(game_id) do

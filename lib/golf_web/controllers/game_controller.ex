@@ -5,7 +5,7 @@ defmodule GolfWeb.GameController do
   def show(conn, %{"id" => game_id}) do
     with {game_id, _} <- Integer.parse(game_id),
          game when is_struct(game) <- GamesDb.get_game(game_id) do
-      render(conn, :show, page_title: "Game", game_id: game_id, game: game)
+      render(conn, :show, page_title: "Game", game: game)
     else
       _ ->
         conn

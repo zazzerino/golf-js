@@ -6,15 +6,11 @@ defmodule GolfWeb.RoomChannel do
     {:ok, socket}
   end
 
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
   @impl true
   def handle_in("ping", payload, socket) do
     {:reply, {:ok, payload}, socket}
   end
 
-  # It is also common to receive messages from the client and
-  # broadcast to everyone in the current topic (room:lobby).
   @impl true
   def handle_in("shout", payload, socket) do
     broadcast(socket, "shout", payload)
@@ -22,8 +18,8 @@ defmodule GolfWeb.RoomChannel do
   end
 
   @impl true
-  def handle_in("create_game", _, socket) do
-    broadcast(socket, "game", %{foo: "bar"})
+  def handle_in("get_game", payload, socket) do
+    IO.inspect(payload, label: "PAYLOAD")
     {:noreply, socket}
   end
 

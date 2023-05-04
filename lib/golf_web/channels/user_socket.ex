@@ -11,6 +11,7 @@ defmodule GolfWeb.UserSocket do
   # pointing to the `GolfWeb.RoomChannel`:
 
   channel "room:*", GolfWeb.RoomChannel
+  channel "game:*", GolfWeb.GameChannel
 
   # To create a channel file, use the mix task:
   #
