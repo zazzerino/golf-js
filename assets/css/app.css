@@ -15,7 +15,11 @@ button {
 }
 
 #flash {
+  position: fixed;
+  top: 1rem;
+  right: 300px;
   cursor: pointer;
+  text-align: center;
 }
 
 .game-container {

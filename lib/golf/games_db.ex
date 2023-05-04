@@ -90,14 +90,7 @@ defmodule Golf.GamesDb do
     )
   end
 
-  def handle_game_event(%Game{} = game, %Event{} = event) do
-    case {game.status, event.action} do
-      {:flip2, :flip} ->
-        handle_flip_event(game, event)
-    end
-  end
-
-  def handle_flip_event(%Game{status: :flip2} = game, event) do
+  def handle_game_event(%Game{status: :flip2} = game, %Event{action: :flip} = event) do
     player = Enum.find(game.players, &(&1.id == event.player_id))
 
     if num_cards_face_up(player.hand) < 2 do

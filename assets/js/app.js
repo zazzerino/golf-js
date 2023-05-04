@@ -13,7 +13,7 @@ if (flashEl) {
     hideElem(flashEl);
   });
 
-  setTimeout(() => hideElem(flashEl), 1000);
+  setTimeout(() => hideElem(flashEl), 2000);
 }
 
 // Establish Phoenix Socket and LiveView configuration.

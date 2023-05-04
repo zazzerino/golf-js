@@ -22,7 +22,7 @@ if (gameContainer) {
   const app = new PIXI.Application({
     width: gameWidth,
     height: gameHeight,
-    backgroundColor: 0x22ffdd,
+    backgroundColor: 0x2e8b57,
     antialias: true,
   });
 
@@ -179,23 +179,23 @@ if (gameContainer) {
         case 0:
         case 1:
         case 2:
-          y = gameHeight - cardHeight * 1.5;
+          y = gameHeight - cardHeight * 1.5 - 3;
           break;
 
         default:
-          y = gameHeight - cardHeight / 2;
+          y = gameHeight - cardHeight / 2 - 2;
           break;
       }
 
       switch (index) {
         case 0:
         case 3:
-          x -= 1;
+          x -= 2;
           break;
 
         case 2:
         case 5:
-          x += 1;
+          x += 2;
           break;
       }
     }
