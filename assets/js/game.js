@@ -1,5 +1,6 @@
-import { PIXI } from "../vendor/pixi";
-import { socket } from "./user_socket";
+import {socket} from "./user_socket";
+import * as PIXI from "pixi.js";
+import {OutlineFilter} from "@pixi/filter-outline";
 
 const gameWidth = 600;
 const gameHeight = 600;
@@ -84,9 +85,6 @@ if (gameContainer) {
     }
   }
 
-  const tableCardX = gameWidth / 2 + cardWidth / 2 + 1;
-  const tableCardY = gameHeight / 2;
-
   function drawGame() {
     drawDeck();
     drawTableCards();
@@ -100,28 +98,6 @@ if (gameContainer) {
         drawHeldCard("bottom", player1.held_card);
       }
     }
-  }
-
-  function heldCardCoord(position) {
-    let x, y;
-
-    switch (position) {
-      case "bottom":
-        x = gameWidth / 2 + cardWidth * 2.5;
-        y = gameHeight - cardHeight;
-        break;
-    }
-
-    return {x, y};
-  }
-
-  function drawHeldCard(position, card) {
-    const {x, y} = heldCardCoord(position);
-    const sprite = makeCardSprite(card, x, y);
-    sprite.cardPlace = "held";
-    app.stage.addChild(sprite);
-    heldCardSprite = sprite;
-    return sprite;
   }
 
   function drawDeck() {
@@ -138,6 +114,9 @@ if (gameContainer) {
     app.stage.addChild(deckSprite);
   }
 
+  const tableCardX = gameWidth / 2 + cardWidth / 2 + 1;
+  const tableCardY = gameHeight / 2;
+
   function drawTableCards() {
     const card1 = game.table_cards[0];
     const card2 = game.table_cards[1];
@@ -149,24 +128,6 @@ if (gameContainer) {
         tableCardSprites.push(sprite);
         app.stage.addChild(sprite);
       }
-    }
-  }
-
-  function drawHand(position, cards) {
-    for (let i = 0; i < 6; i++) {
-      const card = cards[i];
-      const name = card["face_up?"] ? card.name : "2B";
-
-      const sprite = makeCardSprite(name);
-      const {x, y} = handCardCoord(position, i);
-      sprite.x = x;
-      sprite.y = y;
-
-      sprite.cardPlace = "hand";
-      sprite.handIndex = i;
-
-      handSprites[position][i] = sprite;
-      app.stage.addChild(sprite);
     }
   }
 
@@ -201,6 +162,46 @@ if (gameContainer) {
     }
 
     return { x, y };
+  }
+
+  function drawHand(position, cards) {
+    for (let i = 0; i < 6; i++) {
+      const card = cards[i];
+      const name = card["face_up?"] ? card.name : "2B";
+
+      const sprite = makeCardSprite(name);
+      const {x, y} = handCardCoord(position, i);
+      sprite.x = x;
+      sprite.y = y;
+
+      sprite.cardPlace = "hand";
+      sprite.handIndex = i;
+
+      handSprites[position][i] = sprite;
+      app.stage.addChild(sprite);
+    }
+  }
+
+  function heldCardCoord(position) {
+    let x, y;
+
+    switch (position) {
+      case "bottom":
+        x = gameWidth / 2 + cardWidth * 2.5;
+        y = gameHeight - cardHeight;
+        break;
+    }
+
+    return {x, y};
+  }
+
+  function drawHeldCard(position, card) {
+    const {x, y} = heldCardCoord(position);
+    const sprite = makeCardSprite(card, x, y);
+    sprite.cardPlace = "held";
+    app.stage.addChild(sprite);
+    heldCardSprite = sprite;
+    return sprite;
   }
 
   function onDeckClick() {
@@ -245,7 +246,7 @@ if (gameContainer) {
 
   const cardPath = name => `/images/cards/${name}.svg`;
 
-  function makeCardSprite(name, x = 0, y = 0) {
+  function makeCardSprite(name, x = 0, y = 0, isPlayable = true) {
     const sprite = PIXI.Sprite.from(cardPath(name));
     sprite.scale.set(cardScale, cardScale);
     sprite.anchor.set(0.5);
@@ -253,10 +254,18 @@ if (gameContainer) {
     sprite.y = y;
     sprite.cardName = name;
 
-    sprite.eventMode = "static";
-    sprite.on("pointerdown", onCardClick);
+    if (isPlayable) {
+      makePlayable(sprite);
+    }
 
     return sprite;
+  }
+
+  function makePlayable(sprite) {
+    sprite.eventMode = "static";
+    sprite.on("pointerdown", onCardClick);
+    sprite.cursor = "pointer";
+    sprite.filters = [new OutlineFilter(2, 0xff00ff)];
   }
 }
 

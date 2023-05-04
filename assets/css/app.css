@@ -17,9 +17,12 @@ button {
 #flash {
   position: fixed;
   top: 1rem;
-  right: 300px;
+  left: 300px;
+  transform: translateX(-50%);
   cursor: pointer;
   text-align: center;
+  background-color: aquamarine;
+  padding: 0.25rem 2rem;
 }
 
 .game-container {

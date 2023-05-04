@@ -27,15 +27,15 @@ defmodule GolfWeb.GameChannel do
     event = struct(Golf.Games.Event, payload)
 
     game = GamesDb.get_game(game_id)
-    {:ok, _} = GamesDb.handle_game_event(game, event)
+    {:ok, multi} = GamesDb.handle_game_event(game, event)
 
     game = GamesDb.get_game(game_id)
-    broadcast!(socket, "game_event", %{game: game})
+    broadcast!(socket, "game_event", %{game: game, updates: multi})
     {:noreply, socket}
   end
 
-  defp to_atom_key_map(string_key_map) do
-    for {key, val} <- string_key_map, into: %{} do
+  defp to_atom_key_map(map) do
+    for {key, val} <- map, into: %{} do
       {String.to_existing_atom(key), val}
     end
   end

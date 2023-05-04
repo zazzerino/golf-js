@@ -40,7 +40,7 @@ defmodule Golf.Games do
     end
   end
 
-  def current_player_turn(%Game{} = game) do
+  def current_player_index(%Game{} = game) do
     num_players = length(game.players)
     rem(game.turn, num_players)
   end
@@ -114,6 +114,12 @@ defmodule Golf.Games do
   end
 
   def playable_cards(_, _), do: []
+
+  def current_player_playable_cards(game) do
+    player_index = current_player_index(game)
+    player = Enum.at(game.players, player_index)
+    playable_cards(game, player)
+  end
 
   def rank_value(rank) when is_integer(rank) do
     case rank do
