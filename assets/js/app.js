@@ -4,12 +4,16 @@ import "../css/app.css";
 import "./user_socket";
 import "./game";
 
-const flash = document.querySelector("#flash");
+const hideElem = el => el.style.display = "none";
 
-if (flash) {
-  flash.addEventListener("click", _ => {
-    flash.style.display = "none";
+const flashEl = document.querySelector("#flash");
+
+if (flashEl) {
+  flashEl.addEventListener("click", _ => {
+    hideElem(flashEl);
   });
+
+  setTimeout(() => hideElem(flashEl), 2000);
 }
 
 // Establish Phoenix Socket and LiveView configuration.

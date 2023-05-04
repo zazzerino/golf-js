@@ -9,10 +9,10 @@ body {
   flex-direction: column;
 }
 
-/* button {
-  padding: 0.25rem;
+button {
+  padding: 0.5rem;
   margin: 1rem 0;
-} */
+}
 
 #flash {
   cursor: pointer;
@@ -21,4 +21,8 @@ body {
 .game-container {
   min-width: 600px;
   min-height: 600px;
+}
+
+.start-game-button {
+  display: none;
 }

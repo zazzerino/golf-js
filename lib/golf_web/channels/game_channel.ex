@@ -6,41 +6,36 @@ defmodule GolfWeb.GameChannel do
   def join("game:" <> game_id, _, socket) do
     {game_id, _} = Integer.parse(game_id)
     game = GamesDb.get_game(game_id)
-    {:ok, %{game: game}, assign(socket, game: game)}
+    {:ok, %{game: game}, assign(socket, game_id: game_id, game: game)}
   end
 
   @impl true
   def handle_in("start_game", _, socket) do
-    game_id = socket.assigns.game.id
-    game = GamesDb.get_game(game_id)
-    {:ok, %{game: game}} = GamesDb.start_game(game)
+    game = socket.assigns.game
+    {:ok, _} = GamesDb.start_game(game)
+
     game = GamesDb.get_game(game.id)
     broadcast!(socket, "game_started", %{game: game})
+
+    {:noreply, assign(socket, game: game)}
+  end
+
+  @impl true
+  def handle_in("game_event", payload, socket) do
+    payload = payload |> to_atom_key_map() |> put_action_atom()
+    event = struct(Golf.Games.Event, payload)
+    game = GamesDb.get_game(socket.assigns.game_id)
+    GamesDb.handle_event(game, event)
     {:noreply, socket}
   end
 
-  # @impl true
-  # def handle_in("ping", payload, socket) do
-  #   {:reply, {:ok, payload}, socket}
-  # end
+  defp to_atom_key_map(string_key_map) do
+    for {key, val} <- string_key_map, into: %{} do
+      {String.to_existing_atom(key), val}
+    end
+  end
 
-  # @impl true
-  # def handle_in("shout", payload, socket) do
-  #   broadcast(socket, "shout", payload)
-  #   {:noreply, socket}
-  # end
-
-  # @impl true
-  # def join("game:lobby", payload, socket) do
-  #   if authorized?(payload) do
-  #     {:ok, socket}
-  #   else
-  #     {:error, %{reason: "unauthorized"}}
-  #   end
-  # end
-
-  # # Add authorization logic here as required.
-  # defp authorized?(_payload) do
-  #   true
-  # end
+  defp put_action_atom(map) do
+    Map.update!(map, :action, &String.to_existing_atom/1)
+  end
 end
