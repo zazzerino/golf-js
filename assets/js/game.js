@@ -69,6 +69,12 @@ if (gameContainer) {
     startGameButton.style.display = "none";
   });
 
+  channel.on("game_event", payload => {
+    console.log("game event", payload);
+    game = payload.game;
+    drawGame();
+  });
+
   function animateInitDeck(delta) {
     if (deckSprite.y < gameWidth / 2) {
       deckSprite.y += delta * 6;
@@ -78,7 +84,7 @@ if (gameContainer) {
     }
   }
 
-  const tableCardX = gameWidth / 2 + cardWidth / 2 + 2;
+  const tableCardX = gameWidth / 2 + cardWidth / 2 + 1;
   const tableCardY = gameHeight / 2;
 
   function drawGame() {
@@ -126,7 +132,7 @@ if (gameContainer) {
       deckSprite.y = cardWidth / -2;
       app.ticker.add(animateInitDeck)
     } else {
-      deckSprite.x -= cardWidth / 2 + 2;
+      deckSprite.x -= cardWidth / 2 + 1;
     }
 
     app.stage.addChild(deckSprite);
@@ -165,7 +171,8 @@ if (gameContainer) {
   }
 
   function handCardCoord(position, index) {
-    let x, y;
+    let x = (gameWidth / 2) - cardWidth + (cardWidth * (index % 3));
+    let y;
 
     if (position === "bottom") {
       switch (index) {
@@ -179,10 +186,21 @@ if (gameContainer) {
           y = gameHeight - cardHeight / 2;
           break;
       }
-      x = (gameWidth / 2) - cardWidth + (cardWidth * (index % 3));
+
+      switch (index) {
+        case 0:
+        case 3:
+          x -= 1;
+          break;
+
+        case 2:
+        case 5:
+          x += 1;
+          break;
+      }
     }
 
-    return {x, y};
+    return { x, y };
   }
 
   function onDeckClick() {

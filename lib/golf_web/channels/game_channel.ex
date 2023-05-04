@@ -22,10 +22,15 @@ defmodule GolfWeb.GameChannel do
 
   @impl true
   def handle_in("game_event", payload, socket) do
-    payload = payload |> to_atom_key_map() |> put_action_atom()
+    game_id = socket.assigns.game_id
+    payload = payload |> to_atom_key_map() |> action_to_atom()
     event = struct(Golf.Games.Event, payload)
-    game = GamesDb.get_game(socket.assigns.game_id)
-    GamesDb.handle_event(game, event)
+
+    game = GamesDb.get_game(game_id)
+    {:ok, _} = GamesDb.handle_game_event(game, event)
+
+    game = GamesDb.get_game(game_id)
+    broadcast!(socket, "game_event", %{game: game})
     {:noreply, socket}
   end
 
@@ -35,7 +40,7 @@ defmodule GolfWeb.GameChannel do
     end
   end
 
-  defp put_action_atom(map) do
+  defp action_to_atom(map) do
     Map.update!(map, :action, &String.to_existing_atom/1)
   end
 end

@@ -4,7 +4,7 @@ defmodule Golf.GamesDb do
 
   alias Golf.Repo
   alias Golf.Users.User
-  alias Golf.Games.{Game, Player, JoinRequest, ChatMessage}
+  alias Golf.Games.{Game, Player, Event, JoinRequest, ChatMessage}
 
   def players_query(game_id) do
     from p in Player,
@@ -83,22 +83,36 @@ defmodule Golf.GamesDb do
     end)
   end
 
-  def handle_event(game, event) do
-    # IO.inspect(game.status, label: "STATUS")
-    # IO.inspect(event, label: "EVENT")
+  defp update_player(players, player) do
+    Enum.map(
+      players,
+      fn p -> if p.id == player.id, do: player, else: p end
+    )
+  end
 
+  def handle_game_event(%Game{} = game, %Event{} = event) do
     case {game.status, event.action} do
       {:flip2, :flip} ->
         handle_flip_event(game, event)
-
-      _ ->
-        game
     end
   end
 
   def handle_flip_event(%Game{status: :flip2} = game, event) do
     player = Enum.find(game.players, &(&1.id == event.player_id))
-    IO.inspect(player)
+
+    if num_cards_face_up(player.hand) < 2 do
+      hand = flip_card(player.hand, event.hand_index)
+
+      Ecto.Multi.new()
+      |> Ecto.Multi.insert(:event, event)
+      |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand}))
+      |> Ecto.Multi.update(:game, fn %{player: player} ->
+        players = update_player(game.players, player)
+        status = if all_two_face_up?(players), do: :take, else: :flip2
+        Game.changeset(game, %{status: status})
+      end)
+      |> Repo.transaction()
+    end
   end
 
   # def handle_game_event(
@@ -243,13 +257,6 @@ defmodule Golf.GamesDb do
   #     update: [set: [deleted?: true]]
   #   )
   #   |> Repo.update_all([])
-  # end
-
-  # defp replace_player(players, player) do
-  #   Enum.map(
-  #     players,
-  #     fn p -> if p.id == player.id, do: player, else: p end
-  #   )
   # end
 
   # def handle_game_event(
