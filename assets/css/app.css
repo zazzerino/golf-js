@@ -31,5 +31,6 @@ button {
 }
 
 .start-game-button {
-  display: none;
+  /* display: none; */
+  visibility: hidden;
 }

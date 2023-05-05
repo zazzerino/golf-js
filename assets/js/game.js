@@ -1,13 +1,17 @@
 import {socket} from "./user_socket";
 import * as PIXI from "pixi.js";
 import {OutlineFilter} from "@pixi/filter-outline";
+import {zip, rotate} from "./util";
+
+window.zip = zip;
+window.rotate = rotate;
 
 const gameWidth = 600;
 const gameHeight = 600;
 
 const cardSvgWidth = 240;
 const cardSvgHeight = 336;
-const cardScale = 0.3;
+const cardScale = 0.25;
 
 const cardWidth = cardSvgWidth * cardScale;
 const cardHeight = cardSvgHeight * cardScale;
@@ -20,8 +24,10 @@ if (gameContainer) {
 
   let userId;
   let game;
-  let playerId;
+  let playerIndex;
+  let player;
   let playableCards = [];
+  let players = [];
 
   const app = new PIXI.Application({
     width: gameWidth,
@@ -37,20 +43,20 @@ if (gameContainer) {
   let handSprites = {bottom: [], left: [], top: [], right: []};
   let heldCardSprite;
 
-  let player1;
-
   const startGameButton = document.querySelector(".start-game-button");
 
-  function onJoinChannel(resp) {
-    game = resp.game;
-    console.log("Joined game", resp);
+  function onChannelJoin(payload) {
+    console.log("Joined game", payload);
+    game = payload.game;
+    players = payload.players;
 
-    userId = resp.user_id;
-    const player = game.players.find(player => player.user_id === userId);
+    userId = payload.user_id;
+    playerIndex = players.findIndex(p => p.user_id === userId);
 
-    if (player) {
-      playerId = player.id;
-      playableCards = resp.playable_cards[playerId];
+    if (playerIndex !== -1) {
+      player = players[playerIndex];
+      playableCards = payload.playable_cards[player.id];
+      players = rotate(players, playerIndex);
     }
 
     drawGame();
@@ -60,44 +66,48 @@ if (gameContainer) {
         channel.push("start_game", {});
       });
 
-      startGameButton.style.display = "block";
+      startGameButton.style.visibility = "visible";
     }
   }
 
   channel.join()
-    .receive("ok", onJoinChannel)
+    .receive("ok", onChannelJoin)
     .receive("error", resp => console.log("Unable to join", resp));
 
   channel.on("game_started", payload => {
     console.log("game started", payload.game)
     game = payload.game;
+    players = payload.players;
 
-    if (playerId) {
-      playableCards = payload.playable_cards[playerId];
+    if (player) {
+      playableCards = payload.playable_cards[player.id];
+      players = rotate(players, playerIndex);
     }
 
     deckSprite.visible = false;
     drawGame();
-    startGameButton.style.display = "none";
+    startGameButton.style.visibility = "hidden";
   });
 
   channel.on("game_event", payload => {
     console.log("game event", payload);
     game = payload.game;
+    players = payload.players;
 
-    if (playerId) {
-      playableCards = payload.playable_cards[playerId];
+    if (player) {
+      playableCards = payload.playable_cards[player.id];
+      players = rotate(players, playerIndex);
     }
 
     drawGame();
   });
 
-  function animateInitDeck(delta) {
+  function animateDeck(delta) {
     if (deckSprite.y < gameWidth / 2) {
       deckSprite.y += delta * 6;
     } else {
       deckSprite.y = gameHeight / 2;
-      app.ticker.remove(animateInitDeck);
+      app.ticker.remove(animateDeck);
     }
   }
 
@@ -105,15 +115,15 @@ if (gameContainer) {
     drawDeck();
     drawTableCards();
 
-    player1 = game.players[0];
+    for (const player of players) {
+      if (player.hand.length) {
+        drawHand("bottom", player.hand);
 
-    if (player1 && player1.hand.length) {
-      drawHand("bottom", player1.hand);
-
-      if (player1.held_card) {
-        drawHeldCard("bottom", player1.held_card);
-      } else if (heldCardSprite) {
-        heldCardSprite.visible = false;
+        if (player.held_card) {
+          drawHeldCard("bottom", player.held_card);
+        } else if (heldCardSprite) {
+          heldCardSprite.visible = false;
+        }
       }
     }
   }
@@ -126,9 +136,9 @@ if (gameContainer) {
 
     if (game.status === "init") {
       deckSprite.y = cardWidth / -2;
-      app.ticker.add(animateInitDeck)
+      app.ticker.add(animateDeck)
     } else {
-      deckSprite.x -= cardWidth / 2 + 1;
+      deckSprite.x -= cardWidth / 2 + 2;
     }
 
     if (playableCards.includes("deck")) {
@@ -142,7 +152,7 @@ if (gameContainer) {
     }
   }
 
-  const tableCardX = gameWidth / 2 + cardWidth / 2 + 1;
+  const tableCardX = gameWidth / 2 + cardWidth / 2 + 2;
   const tableCardY = gameHeight / 2;
 
   function drawTableCard(cardName, isPlayable = false) {
@@ -186,23 +196,23 @@ if (gameContainer) {
         case 0:
         case 1:
         case 2:
-          y = gameHeight - cardHeight * 1.5 - 3;
+          y = gameHeight - cardHeight * 1.5 - 8;
           break;
 
         default:
-          y = gameHeight - cardHeight / 2 - 2;
+          y = gameHeight - cardHeight / 2 - 4;
           break;
       }
 
       switch (index) {
         case 0:
         case 3:
-          x -= 2;
+          x -= 4;
           break;
 
         case 2:
         case 5:
-          x += 2;
+          x += 4;
           break;
       }
     }
@@ -267,28 +277,25 @@ if (gameContainer) {
 
     if (prevSprite) {
       prevSprite.visible = false;
-      // app.stage.removeChild(prevSprite);
     }
 
     return sprite;
   }
 
   function onDeckClick() {
-    const event = {action: "take_from_deck", game_id: gameId, player_id: player1.id};
+    const event = {action: "take_from_deck", game_id: gameId, player_id: player.id};
     channel.push("game_event", event);
   }
 
   function onTableClick() {
-    const event = {action: "take_from_table", game_id: gameId, player_id: player1.id};
+    const event = {action: "take_from_table", game_id: gameId, player_id: player.id};
     channel.push("game_event", event);
   }
 
   function onHeldClick() {
-    if (game.status === "hold") {
-      const event = {action: "discard", game_id: gameId, player_id: playerId};
-      channel.push("game_event", event);
-      app.stage.removeChild(heldCardSprite);
-    }
+    const event = {action: "discard", game_id: gameId, player_id: player.id};
+    channel.push("game_event", event);
+    app.stage.removeChild(heldCardSprite);
   }
 
   function onHandClick(index) {
@@ -297,12 +304,12 @@ if (gameContainer) {
     switch (game.status) {
       case "flip2":
       case "flip":
-        event = {action: "flip", game_id: gameId, player_id: player1.id, hand_index: index};
+        event = {action: "flip", game_id: gameId, player_id: player.id, hand_index: index};
         channel.push("game_event", event);
         break;
 
       case "hold":
-        event = {action: "swap", game_id: gameId, player_id: player1.id, hand_index: index}
+        event = {action: "swap", game_id: gameId, player_id: player.id, hand_index: index}
         channel.push("game_event", event);
         break;
     }
@@ -348,6 +355,6 @@ if (gameContainer) {
     sprite.eventMode = "static";
     sprite.on("pointerdown", onCardClick);
     sprite.cursor = "pointer";
-    sprite.filters = [new OutlineFilter(2, 0xff00ff)];
+    sprite.filters = [new OutlineFilter(3, 0xff00ff)];
   }
 }

@@ -40,12 +40,11 @@ defmodule Golf.Games do
     end
   end
 
-  def current_player_index(%Game{} = game) do
-    num_players = length(game.players)
+  def current_player_index(%Game{} = game, num_players) do
     rem(game.turn, num_players)
   end
 
-  defguard is_players_turn(game, player) when rem(game.turn, length(game.players)) == player.turn
+  defguard is_players_turn(game, player, num_players) when rem(game.turn, num_players) == player.turn
 
   def flip_card(hand, index) do
     List.update_at(hand, index, fn card -> Map.put(card, "face_up?", true) end)
@@ -88,7 +87,7 @@ defmodule Golf.Games do
     |> Enum.map(fn {_, index} -> String.to_existing_atom("hand_#{index}") end)
   end
 
-  def playable_cards(%Game{status: :flip2}, %Player{} = player) do
+  def playable_cards(%Game{status: :flip2}, %Player{} = player, _num_players) do
     if num_cards_face_up(player.hand) < 2 do
       face_down_cards(player.hand)
     else
@@ -96,8 +95,8 @@ defmodule Golf.Games do
     end
   end
 
-  def playable_cards(%Game{} = game, %Player{} = player)
-      when is_players_turn(game, player) do
+  def playable_cards(%Game{} = game, %Player{} = player, num_players)
+      when is_players_turn(game, player, num_players) do
     case game.status do
       s when s in [:flip2, :flip] ->
         face_down_cards(player.hand)
@@ -113,11 +112,13 @@ defmodule Golf.Games do
     end
   end
 
-  def playable_cards(_, _), do: []
+  def playable_cards(_, _, _), do: []
 
-  def all_playable_cards(game) do
-    for player <- game.players, into: %{} do
-      {player.id, playable_cards(game, player)}
+  def all_playable_cards(game, players) do
+    num_players = length(players)
+
+    for player <- players, into: %{} do
+      {player.id, playable_cards(game, player, num_players)}
     end
   end
 
