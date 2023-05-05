@@ -3,9 +3,6 @@ import * as PIXI from "pixi.js";
 import {OutlineFilter} from "@pixi/filter-outline";
 import {zip, rotate} from "./util";
 
-window.zip = zip;
-window.rotate = rotate;
-
 const gameWidth = 600;
 const gameHeight = 600;
 
@@ -28,6 +25,7 @@ if (gameContainer) {
   let player;
   let playableCards = [];
   let players = [];
+  let positions = [];
 
   const app = new PIXI.Application({
     width: gameWidth,
@@ -42,6 +40,7 @@ if (gameContainer) {
   let tableCardSprites = []
   let handSprites = {bottom: [], left: [], top: [], right: []};
   let heldCardSprite;
+  let playerInfoSprites = {bottom: null, left: null, top: null, right: null};
 
   const startGameButton = document.querySelector(".start-game-button");
 
@@ -49,6 +48,7 @@ if (gameContainer) {
     console.log("Joined game", payload);
     game = payload.game;
     players = payload.players;
+    positions = playerPositions(players.length);
 
     userId = payload.user_id;
     playerIndex = players.findIndex(p => p.user_id === userId);
@@ -75,9 +75,10 @@ if (gameContainer) {
     .receive("error", resp => console.log("Unable to join", resp));
 
   channel.on("game_started", payload => {
-    console.log("game started", payload.game)
+    console.log("game started", payload)
     game = payload.game;
     players = payload.players;
+    positions = playerPositions(players.length);
 
     if (player) {
       playableCards = payload.playable_cards[player.id];
@@ -93,6 +94,7 @@ if (gameContainer) {
     console.log("game event", payload);
     game = payload.game;
     players = payload.players;
+    positions = playerPositions(players.length);
 
     if (player) {
       playableCards = payload.playable_cards[player.id];
@@ -125,6 +127,8 @@ if (gameContainer) {
           heldCardSprite.visible = false;
         }
       }
+
+      drawPlayerInfo(player, "bottom");
     }
   }
 
@@ -196,11 +200,11 @@ if (gameContainer) {
         case 0:
         case 1:
         case 2:
-          y = gameHeight - cardHeight * 1.5 - 8;
+          y = gameHeight - cardHeight * 1.5 - 8 - 25;
           break;
 
         default:
-          y = gameHeight - cardHeight / 2 - 4;
+          y = gameHeight - cardHeight / 2 - 4 - 25;
           break;
       }
 
@@ -282,6 +286,38 @@ if (gameContainer) {
     return sprite;
   }
 
+  function playerInfoCoord(position) {
+    switch (position) {
+      case "bottom":
+        return {x: gameWidth / 2, y: gameHeight - 15};
+    }
+  }
+
+  const playerInfoStyle = {
+    fill: 0xffffff,
+    fontWeight: "bold",
+    fontSize: 20,
+  };
+
+  const playerInfoText = player => `${player.username}: ${player.score}`;
+
+  function drawPlayerInfo(player, position) {
+    const prev = playerInfoSprites[position];
+
+    const text = new PIXI.Text(playerInfoText(player), playerInfoStyle);
+    text.anchor.set(0.5);
+    const {x, y} = playerInfoCoord(position);
+    text.x = x;
+    text.y = y;
+
+    playerInfoSprites[position] = text;
+    app.stage.addChild(text);
+
+    if (prev) {
+      prev.visible = false;
+    }
+  }
+
   function onDeckClick() {
     const event = {action: "take_from_deck", game_id: gameId, player_id: player.id};
     channel.push("game_event", event);
@@ -356,5 +392,20 @@ if (gameContainer) {
     sprite.on("pointerdown", onCardClick);
     sprite.cursor = "pointer";
     sprite.filters = [new OutlineFilter(3, 0xff00ff)];
+  }
+
+  function playerPositions(numPlayers) {
+    switch (numPlayers) {
+      case 1:
+        return ["bottom"];
+      case 2:
+        return ["bottom", "top"];
+      case 3:
+        return ["bottom", "left", "right"];
+      case 4:
+        return ["bottom", "left", "top", "right"];
+      default:
+        throw new Error(`"numPlayers" must be between 1 and 4. Given: ${numPlayers}`);
+    }
   }
 }

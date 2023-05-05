@@ -77,7 +77,10 @@ defmodule Golf.GamesDb do
       |> Enum.chunk_every(hand_size())
 
     Ecto.Multi.new()
-    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :flip2, deck: deck, table_cards: table_cards}))
+    |> Ecto.Multi.update(
+      :game,
+      Game.changeset(game, %{status: :flip2, deck: deck, table_cards: table_cards})
+    )
     |> update_player_hands(players, hands)
     |> Repo.transaction()
   end
@@ -123,7 +126,11 @@ defmodule Golf.GamesDb do
     end
   end
 
-  def handle_game_event(%Game{status: :take} = game, players, %Event{action: :take_from_deck} = event) do
+  def handle_game_event(
+        %Game{status: :take} = game,
+        players,
+        %Event{action: :take_from_deck} = event
+      ) do
     player = find_player(players, event.player_id)
     {:ok, card, deck} = deal_from_deck(game.deck)
 
@@ -134,7 +141,11 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :take} = game, players, %Event{action: :take_from_table} = event) do
+  def handle_game_event(
+        %Game{status: :take} = game,
+        players,
+        %Event{action: :take_from_table} = event
+      ) do
     player = find_player(players, event.player_id)
     [card | table_cards] = game.table_cards
 
@@ -160,7 +171,10 @@ defmodule Golf.GamesDb do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:event, event)
     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: nil}))
-    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn}))
+    |> Ecto.Multi.update(
+      :game,
+      Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn})
+    )
     |> Repo.transaction()
   end
 
@@ -191,7 +205,11 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :hold} = game, players, %Event{action: :swap} = event) do
+  def handle_game_event(
+        %Game{status: :hold} = game,
+        players,
+        %Event{action: :swap} = event
+      ) do
     player = find_player(players, event.player_id)
     {card, hand} = swap_card(player.hand, player.held_card, event.hand_index)
     table_cards = [card | game.table_cards]
@@ -219,7 +237,11 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :last_take} = game, players, %Event{action: :take_from_deck} = event) do
+  def handle_game_event(
+        %Game{status: :last_take} = game,
+        players,
+        %Event{action: :take_from_deck} = event
+      ) do
     player = find_player(players, event.player_id)
     {:ok, card, deck} = deal_from_deck(game.deck)
 
@@ -230,18 +252,29 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :last_take} = game, players, %Event{action: :take_from_table} = event) do
+  def handle_game_event(
+        %Game{status: :last_take} = game,
+        players,
+        %Event{action: :take_from_table} = event
+      ) do
     player = find_player(players, event.player_id)
     [card | table_cards] = game.table_cards
 
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:event, event)
     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
-    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :last_hold, table_cards: table_cards}))
+    |> Ecto.Multi.update(
+      :game,
+      Game.changeset(game, %{status: :last_hold, table_cards: table_cards})
+    )
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :last_hold} = game, players, %Event{action: :discard} = event) do
+  def handle_game_event(
+        %Game{status: :last_hold} = game,
+        players,
+        %Event{action: :discard} = event
+      ) do
     player = find_player(players, event.player_id)
     card = player.held_card
     table_cards = [card | game.table_cards]
@@ -257,7 +290,10 @@ defmodule Golf.GamesDb do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:event, event)
     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: nil, hand: hand}))
-    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn}))
+    |> Ecto.Multi.update(
+      :game,
+      Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn})
+    )
     |> Repo.transaction()
   end
 

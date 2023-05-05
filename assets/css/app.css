@@ -1,24 +1,53 @@
-* {
-  margin: 0;
-  padding: 0;
+@import "bulma.css";
+
+nav {
+  display: flex;
+  justify-content: flex-end;
 }
 
-body {
+/* .navbar-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.navbar-right:first-child {
+  margin-right: auto;
+} */
+
+/* .navbar-right:last-child {
+  margin-right: 0.5rem;
+} */
+
+main.section {
+  padding-top: 0;
+}
+
+.footer {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* body {
   margin: 1rem;
   display: flex;
   flex-direction: column;
 }
 
-button {
-  padding: 0.5rem;
-  margin: 1rem 0;
+body > h2 {
+  margin-bottom: 1rem;
 }
 
-#flash {
+button {
+  padding: 0.5rem;
+}
+*/
+
+ #flash {
   position: fixed;
   top: 1rem;
-  left: 300px;
-  transform: translateX(-50%);
+  /* left: 300px; */
+  left: 50%;
+  transform: translatex(-50%);
   cursor: pointer;
   text-align: center;
   background-color: aquamarine;
@@ -31,6 +60,5 @@ button {
 }
 
 .start-game-button {
-  /* display: none; */
   visibility: hidden;
 }

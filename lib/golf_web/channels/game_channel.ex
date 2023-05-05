@@ -8,35 +8,34 @@ defmodule GolfWeb.GameChannel do
     {game_id, _} = Integer.parse(game_id)
 
     game = GamesDb.get_game(game_id)
-    players = GamesDb.get_players(game_id)
-    # player = Enum.find(players, &(&1.user_id == user_id))
+    players = GamesDb.get_players(game_id) |> put_scores()
     playable_cards = Games.all_playable_cards(game, players)
 
-    {:ok,
-     %{user_id: user_id, game: game, players: players, playable_cards: playable_cards},
-     assign(socket, game: game, players: players)
-    }
+    {:ok, %{user_id: user_id, game: game, players: players, playable_cards: playable_cards},
+     assign(socket, game: game, players: players)}
   end
 
   @impl true
   def handle_in("start_game", _, socket) do
-    # user_id = socket.assigns.user_id
     game = socket.assigns.game
     players = socket.assigns.players
     {:ok, _} = GamesDb.start_game(game, players)
 
     game = GamesDb.get_game(game.id)
-    players = GamesDb.get_players(game.id)
-    # player = Enum.find(players, &(&1.user_id == user_id))
+    players = GamesDb.get_players(game.id) |> put_scores()
     playable_cards = Games.all_playable_cards(game, players)
-    broadcast!(socket, "game_started", %{game: game, players: players, playable_cards: playable_cards})
+
+    broadcast!(socket, "game_started", %{
+      game: game,
+      players: players,
+      playable_cards: playable_cards
+    })
 
     {:noreply, assign(socket, game: game, players: players)}
   end
 
   @impl true
   def handle_in("game_event", payload, socket) do
-    # user_id = socket.assigns.user_id
     game = socket.assigns.game
     players = socket.assigns.players
     payload = payload |> to_atom_key_map() |> action_to_atom()
@@ -45,10 +44,14 @@ defmodule GolfWeb.GameChannel do
     {:ok, _} = GamesDb.handle_game_event(game, players, event)
 
     game = GamesDb.get_game(game.id)
-    players = GamesDb.get_players(game.id)
-    # player = Enum.find(players, &(&1.user_id == user_id))
+    players = GamesDb.get_players(game.id) |> put_scores()
     playable_cards = Games.all_playable_cards(game, players)
-    broadcast!(socket, "game_event", %{game: game, players: players, playable_cards: playable_cards})
+
+    broadcast!(socket, "game_event", %{
+      game: game,
+      players: players,
+      playable_cards: playable_cards
+    })
 
     {:noreply, assign(socket, game: game, players: players)}
   end
@@ -68,5 +71,9 @@ defmodule GolfWeb.GameChannel do
 
   defp action_to_atom(map) do
     Map.update!(map, :action, &String.to_existing_atom/1)
+  end
+
+  defp put_scores(players) do
+    Enum.map(players, fn p -> Map.put(p, :score, Games.score(p.hand)) end)
   end
 end

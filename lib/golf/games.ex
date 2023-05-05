@@ -44,7 +44,8 @@ defmodule Golf.Games do
     rem(game.turn, num_players)
   end
 
-  defguard is_players_turn(game, player, num_players) when rem(game.turn, num_players) == player.turn
+  defguard is_players_turn(game, player, num_players)
+           when rem(game.turn, num_players) == player.turn
 
   def flip_card(hand, index) do
     List.update_at(hand, index, fn card -> Map.put(card, "face_up?", true) end)
@@ -141,12 +142,9 @@ defmodule Golf.Games do
   def rank_value(<<rank, _>>), do: rank_value(rank)
 
   defp rank_or_nil(%{"face_up?" => true, "name" => <<rank, _>>}), do: rank
-  defp rank_or_nil(rank) when is_integer(rank), do: rank
   defp rank_or_nil(_), do: nil
 
-  def score(hand, total \\ 0) do
-    ranks = Enum.map(hand, &rank_or_nil/1)
-
+  defp score_ranks(ranks, total \\ 0) do
     case ranks do
       # all match
       [a, a, a, a, a, a] when not is_nil(a) ->
@@ -154,35 +152,35 @@ defmodule Golf.Games do
 
       # outer cols match
       [a, b, a, a, c, a] when not is_nil(a) ->
-        score([b, c], total - 20)
+        score_ranks([b, c], total - 20)
 
       # left 2 cols match
       [a, a, b, a, a, c] when not is_nil(a) ->
-        score([b, c], total - 10)
+        score_ranks([b, c], total - 10)
 
       # right 2 cols match
       [a, b, b, c, b, b] when not is_nil(b) ->
-        score([a, c], total - 10)
+        score_ranks([a, c], total - 10)
 
       # left col match
       [a, b, c, a, d, e] when not is_nil(a) ->
-        score([b, c, d, e], total)
+        score_ranks([b, c, d, e], total)
 
       # middle col match
       [a, b, c, d, b, e] when not is_nil(b) ->
-        score([a, c, d, e], total)
+        score_ranks([a, c, d, e], total)
 
       # right col match
       [a, b, c, d, e, c] when not is_nil(c) ->
-        score([a, b, d, e], total)
+        score_ranks([a, b, d, e], total)
 
       # left col match, 2nd pass
       [a, b, a, c] when not is_nil(a) ->
-        score([b, c], total)
+        score_ranks([b, c], total)
 
       # right col match, 2nd pass
       [a, b, c, b] when not is_nil(b) ->
-        score([a, c], total)
+        score_ranks([a, c], total)
 
       [a, a] when not is_nil(a) ->
         total
@@ -193,6 +191,12 @@ defmodule Golf.Games do
         |> Enum.reduce(0, fn name, acc -> rank_value(name) + acc end)
         |> Kernel.+(total)
     end
+  end
+
+  def score(hand) do
+    hand
+    |> Enum.map(&rank_or_nil/1)
+    |> score_ranks()
   end
 
   def hand_positions(num_players) do

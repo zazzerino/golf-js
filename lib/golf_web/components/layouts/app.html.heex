@@ -1,12 +1,16 @@
 <header>
   <nav>
-    <a href={~p"/"}>Home</a>
+    <a class="navbar-item" href={~p"/"}>Home</a>
+    <a class="navbar-item" href={~p"/"}>Settings</a>
+    <a class="navbar-item" href={~p"/"}>Games</a>
   </nav>
 </header>
 
-<main>
+<main class="section">
   <.flash_group flash={@flash} />
   <%= @inner_content %>
 </main>
 
-<footer>Logged in as user <%= @user_id %>.</footer>
+<!--
+<footer class="footer">Logged in as user <%= @user_id %>.</footer>
+-->
