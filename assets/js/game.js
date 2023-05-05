@@ -164,14 +164,19 @@ if (gameContainer) {
   }
 
   function drawTableCards() {
+    const prevSprites = [...tableCardSprites];
+
     const card1 = game.table_cards[0];
     const card2 = game.table_cards[1];
 
     const isPlayable = playableCards.includes("table");
-    console.log("table playable?", isPlayable);
 
     if (card2) drawTableCard(card2);
     if (card1) drawTableCard(card1, isPlayable);
+
+    for (let sprite of prevSprites) {
+      app.stage.removeChild(sprite);
+    }
   }
 
   function handCardCoord(position, index) {
@@ -274,13 +279,13 @@ if (gameContainer) {
   }
 
   function onDeckClick() {
-    console.log("deck clicked");
     const event = {action: "take_from_deck", game_id: gameId, player_id: player1.id};
     channel.push("game_event", event);
   }
 
   function onTableClick() {
-    console.log("table clicked");
+    const event = {action: "take_from_table", game_id: gameId, player_id: player1.id};
+    channel.push("game_event", event);
   }
 
   function onHeldClick() {
@@ -349,10 +354,5 @@ if (gameContainer) {
     sprite.on("pointerdown", onCardClick);
     sprite.cursor = "pointer";
     sprite.filters = [new OutlineFilter(2, 0xff00ff)];
-  }
-
-  function makeUnplayable(sprite) {
-    sprite.eventMode = "none";
-    sprite.cursor = "initial";
   }
 }
