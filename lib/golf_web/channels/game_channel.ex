@@ -30,11 +30,11 @@ defmodule GolfWeb.GameChannel do
     event = struct(Golf.Games.Event, payload)
 
     game = GamesDb.get_game(game_id)
-    {:ok, multi} = GamesDb.handle_game_event(game, event)
+    {:ok, _} = GamesDb.handle_game_event(game, event)
 
     game = GamesDb.get_game(game_id)
     playable_cards = Games.all_playable_cards(game)
-    broadcast!(socket, "game_event", %{game: game, playable_cards: playable_cards, updates: multi})
+    broadcast!(socket, "game_event", %{game: game, playable_cards: playable_cards})
 
     {:noreply, socket}
   end

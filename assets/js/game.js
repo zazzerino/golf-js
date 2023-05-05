@@ -283,6 +283,14 @@ if (gameContainer) {
     console.log("table clicked");
   }
 
+  function onHeldClick() {
+    if (game.status === "hold") {
+      const event = {action: "discard", game_id: gameId, player_id: playerId};
+      channel.push("game_event", event);
+      app.stage.removeChild(heldCardSprite);
+    }
+  }
+
   function isHandCardPlayable(index) {
     switch (game.status) {
       case "flip2":
@@ -308,6 +316,10 @@ if (gameContainer) {
 
       case "table":
         onTableClick();
+        break;
+
+      case "held":
+        onHeldClick();
         break;
 
       default:
