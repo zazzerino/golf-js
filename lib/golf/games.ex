@@ -115,10 +115,10 @@ defmodule Golf.Games do
 
   def playable_cards(_, _), do: []
 
-  def current_player_playable_cards(game) do
-    player_index = current_player_index(game)
-    player = Enum.at(game.players, player_index)
-    playable_cards(game, player)
+  def all_playable_cards(game) do
+    for player <- game.players, into: %{} do
+      {player.id, playable_cards(game, player)}
+    end
   end
 
   def rank_value(rank) when is_integer(rank) do

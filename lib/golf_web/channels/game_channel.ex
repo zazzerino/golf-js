@@ -1,12 +1,14 @@
 defmodule GolfWeb.GameChannel do
   use GolfWeb, :channel
-  alias Golf.GamesDb
+  alias Golf.{Games, GamesDb}
 
   @impl true
   def join("game:" <> game_id, _, socket) do
+    user_id = socket.assigns.user_id
     {game_id, _} = Integer.parse(game_id)
     game = GamesDb.get_game(game_id)
-    {:ok, %{game: game}, assign(socket, game_id: game_id, game: game)}
+    playable_cards = Games.all_playable_cards(game)
+    {:ok, %{game: game, user_id: user_id, playable_cards: playable_cards}, assign(socket, game_id: game_id, game: game)}
   end
 
   @impl true
@@ -15,7 +17,8 @@ defmodule GolfWeb.GameChannel do
     {:ok, _} = GamesDb.start_game(game)
 
     game = GamesDb.get_game(game.id)
-    broadcast!(socket, "game_started", %{game: game})
+    playable_cards = Games.all_playable_cards(game)
+    broadcast!(socket, "game_started", %{game: game, playable_cards: playable_cards})
 
     {:noreply, assign(socket, game: game)}
   end
@@ -30,7 +33,9 @@ defmodule GolfWeb.GameChannel do
     {:ok, multi} = GamesDb.handle_game_event(game, event)
 
     game = GamesDb.get_game(game_id)
-    broadcast!(socket, "game_event", %{game: game, updates: multi})
+    playable_cards = Games.all_playable_cards(game)
+    broadcast!(socket, "game_event", %{game: game, playable_cards: playable_cards, updates: multi})
+
     {:noreply, socket}
   end
 

@@ -90,8 +90,12 @@ defmodule Golf.GamesDb do
     )
   end
 
+  defp find_player(players, player_id) do
+    Enum.find(players, &(&1.id == player_id))
+  end
+
   def handle_game_event(%Game{status: :flip2} = game, %Event{action: :flip} = event) do
-    player = Enum.find(game.players, &(&1.id == event.player_id))
+    player = find_player(game.players, event.player_id)
 
     if num_cards_face_up(player.hand) < 2 do
       hand = flip_card(player.hand, event.hand_index)
@@ -105,34 +109,21 @@ defmodule Golf.GamesDb do
         Game.changeset(game, %{status: status})
       end)
       |> Repo.transaction()
+    else
+      {:error, :already_flipped_two}
     end
   end
 
-  # def handle_game_event(
-  #       %Game{status: :flip2} = game,
-  #       %Player{} = player,
-  #       %Event{action: :flip} = event
-  #     ) do
-  #   if num_cards_face_up(player.hand) < 2 do
-  #     hand = flip_card(player.hand, event.hand_index)
+  def handle_game_event(%Game{status: :take} = game, %Event{action: :take_from_deck} = event) do
+    {:ok, card, deck} = deal_from_deck(game.deck)
+    player = find_player(game.players, event.player_id)
 
-  #     {:ok, multi} =
-  #       Ecto.Multi.new()
-  #       |> Ecto.Multi.insert(:event, event)
-  #       |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand}))
-  #       |> Ecto.Multi.update(:game, fn %{player: player} ->
-  #         players = replace_player(game.players, player)
-  #         status = if all_two_face_up?(players), do: :take, else: :flip2
-  #         Game.changeset(game, %{status: status})
-  #       end)
-  #       |> Repo.transaction()
-
-  #     broadcast_game_event(game.id)
-  #     {:ok, multi}
-  #   else
-  #     {:error, :already_flipped_two}
-  #   end
-  # end
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
+    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :hold, deck: deck}))
+    |> Repo.transaction()
+  end
 
   # pubsub broadcasts
 
@@ -182,7 +173,6 @@ defmodule Golf.GamesDb do
   #   unconfirmed_join_requests_query(game_id)
   #   |> Repo.all()
   # end
-
 
   # def get_chat_message(message_id) do
   #   from(cm in ChatMessage,
@@ -280,24 +270,6 @@ defmodule Golf.GamesDb do
 
   #       Game.changeset(game, %{status: status, turn: turn})
   #     end)
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :take} = game,
-  #       %Player{} = player,
-  #       %Event{action: :take_from_deck} = event
-  #     ) do
-  #   {:ok, card, deck} = deal_from_deck(game.deck)
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
-  #     |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :hold, deck: deck}))
   #     |> Repo.transaction()
 
   #   broadcast_game_event(game.id)

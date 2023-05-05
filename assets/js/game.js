@@ -18,7 +18,10 @@ if (gameContainer) {
   const gameId = parseInt(location.pathname.split("/").pop());
   const channel = socket.channel(`game:${gameId}`, {});
 
-  let game = null;
+  let userId;
+  let game;
+  let playerId;
+  let playableCards = [];
 
   const app = new PIXI.Application({
     width: gameWidth,
@@ -40,7 +43,16 @@ if (gameContainer) {
 
   function onJoinChannel(resp) {
     game = resp.game;
-    console.log("Joined game", game);
+    console.log("Joined game", resp);
+
+    userId = resp.user_id;
+    const player = game.players.find(player => player.user_id === userId);
+
+    if (player) {
+      playerId = player.id;
+      playableCards = resp.playable_cards[playerId];
+    }
+
     drawGame();
 
     if (game.status === "init") {
@@ -56,15 +68,14 @@ if (gameContainer) {
     .receive("ok", onJoinChannel)
     .receive("error", resp => console.log("Unable to join", resp));
 
-  channel.on("game", payload => {
-    console.log("game message", payload);
-    game = payload.game;
-    drawGame();
-  });
-
   channel.on("game_started", payload => {
     console.log("game started", payload.game)
     game = payload.game;
+
+    if (playerId) {
+      playableCards = payload.playable_cards[playerId];
+    }
+
     deckSprite.visible = false;
     drawGame();
     startGameButton.style.display = "none";
@@ -73,6 +84,11 @@ if (gameContainer) {
   channel.on("game_event", payload => {
     console.log("game event", payload);
     game = payload.game;
+
+    if (playerId) {
+      playableCards = payload.playable_cards[playerId];
+    }
+
     drawGame();
   });
 
@@ -101,6 +117,8 @@ if (gameContainer) {
   }
 
   function drawDeck() {
+    const prevSprite = deckSprite;
+
     deckSprite = makeCardSprite("2B", gameWidth / 2, gameHeight / 2);
     deckSprite.cardPlace = "deck";
 
@@ -111,24 +129,49 @@ if (gameContainer) {
       deckSprite.x -= cardWidth / 2 + 1;
     }
 
+    const isPlayable = playableCards.includes("deck");
+
+    if (isPlayable) {
+      makePlayable(deckSprite);
+    }
+
     app.stage.addChild(deckSprite);
+
+    if (prevSprite) {
+      app.stage.removeChild(prevSprite);
+    }
   }
 
   const tableCardX = gameWidth / 2 + cardWidth / 2 + 1;
   const tableCardY = gameHeight / 2;
 
+  function drawTableCard(cardName, isPlayable = false) {
+    const prevTableCardSprites = [...tableCardSprites];
+
+    const sprite = makeCardSprite(cardName, tableCardX, tableCardY);
+    sprite.cardPlace = "table";
+
+    if (isPlayable) {
+      makePlayable(sprite);
+    }
+
+    tableCardSprites.push(sprite);
+    app.stage.addChild(sprite);
+
+    for (const sprite of prevTableCardSprites) {
+      app.stage.removeChild(sprite);
+    }
+  }
+
   function drawTableCards() {
     const card1 = game.table_cards[0];
     const card2 = game.table_cards[1];
 
-    for (const card of [card2, card1]) {
-      if (card) {
-        const sprite = makeCardSprite(card, tableCardX, tableCardY);
-        sprite.cardPlace = "table";
-        tableCardSprites.push(sprite);
-        app.stage.addChild(sprite);
-      }
-    }
+    const isPlayable = playableCards.includes("table");
+    console.log("table playable?", isPlayable);
+
+    if (card2) drawTableCard(card2);
+    if (card1) drawTableCard(card1, isPlayable);
   }
 
   function handCardCoord(position, index) {
@@ -165,6 +208,8 @@ if (gameContainer) {
   }
 
   function drawHand(position, cards) {
+    const prevSprites = [...handSprites[position]];
+
     for (let i = 0; i < 6; i++) {
       const card = cards[i];
       const name = card["face_up?"] ? card.name : "2B";
@@ -177,8 +222,18 @@ if (gameContainer) {
       sprite.cardPlace = "hand";
       sprite.handIndex = i;
 
+      const isPlayable = playableCards.includes(`hand_${i}`);
+
+      if (isPlayable) {
+        makePlayable(sprite);
+      }
+
       handSprites[position][i] = sprite;
       app.stage.addChild(sprite);
+    }
+
+    for (const sprite of prevSprites) {
+      app.stage.removeChild(sprite);
     }
   }
 
@@ -196,16 +251,32 @@ if (gameContainer) {
   }
 
   function drawHeldCard(position, card) {
+    const prevSprite = heldCardSprite;
+
     const {x, y} = heldCardCoord(position);
     const sprite = makeCardSprite(card, x, y);
     sprite.cardPlace = "held";
-    app.stage.addChild(sprite);
+    
     heldCardSprite = sprite;
+    app.stage.addChild(sprite);
+
+    const isPlayable = playableCards.includes("held");
+
+    if (isPlayable) {
+      makePlayable(sprite);
+    }
+
+    if (prevSprite) {
+      app.stage.removeChild(prevSprite);
+    }
+
     return sprite;
   }
 
   function onDeckClick() {
     console.log("deck clicked");
+    const event = {action: "take_from_deck", game_id: gameId, player_id: player1.id};
+    channel.push("game_event", event);
   }
 
   function onTableClick() {
@@ -246,7 +317,7 @@ if (gameContainer) {
 
   const cardPath = name => `/images/cards/${name}.svg`;
 
-  function makeCardSprite(name, x = 0, y = 0, isPlayable = true) {
+  function makeCardSprite(name, x = 0, y = 0, isPlayable = false) {
     const sprite = PIXI.Sprite.from(cardPath(name));
     sprite.scale.set(cardScale, cardScale);
     sprite.anchor.set(0.5);
@@ -267,35 +338,9 @@ if (gameContainer) {
     sprite.cursor = "pointer";
     sprite.filters = [new OutlineFilter(2, 0xff00ff)];
   }
+
+  function makeUnplayable(sprite) {
+    sprite.eventMode = "none";
+    sprite.cursor = "initial";
+  }
 }
-
-// const cardNames = [
-//   "2B",
-//   "AC","2C","3C","4C","5C","6C","7C","8C","9C","TC","QC","KC",
-//   "AD","2D","3D","4D","5D","6D","7D","8D","9D","TD","QD","KD",
-//   "AH","2H","3H","4H","5H","6H","7H","8H","9H","TH","QH","KH",
-//   "AS","2S","3S","4S","5S","6S","7S","8S","9S","TS","QS","KS",
-// ];
-
-// for (const name of cardNames) {
-//   PIXI.Assets.add(name, `/images/cards/${name}.svg`);
-// }
- 
-// PIXI.Assets.load(cardNames)
-  //   .then(textures => {
-  //     const deck = makeCardSprite(textures["2B"], 300, 300);
-  //     app.stage.addChild(deck);
-
-  // function gameStarted() {
-  //   deckSprite.x -= cardWidth / 2;
-
-  //   const tableCard1 = game.table_cards[0];
-  //   tableCard1Sprite = makeCardSprite(tableCard1, tableCardWidth, tableCardHeight);
-  //   app.stage.addChild(tableCard1Sprite);
-
-  //   const player1 = game.players[0];
-
-  //   if (player1) {
-  //     drawHand("bottom", player1.hand);
-  //   }
-  // }
