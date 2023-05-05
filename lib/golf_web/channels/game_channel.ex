@@ -6,8 +6,10 @@ defmodule GolfWeb.GameChannel do
   def join("game:" <> game_id, _, socket) do
     user_id = socket.assigns.user_id
     {game_id, _} = Integer.parse(game_id)
+
     game = GamesDb.get_game(game_id)
     playable_cards = Games.all_playable_cards(game)
+
     {:ok, %{game: game, user_id: user_id, playable_cards: playable_cards}, assign(socket, game_id: game_id, game: game)}
   end
 

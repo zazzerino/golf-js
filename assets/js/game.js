@@ -55,7 +55,7 @@ if (gameContainer) {
 
     drawGame();
 
-    if (game.status === "init") {
+    if (game.status === "init" && player && player["host?"]) {
       startGameButton.addEventListener("click", _ => {
         channel.push("start_game", {});
       });
@@ -112,6 +112,8 @@ if (gameContainer) {
 
       if (player1.held_card) {
         drawHeldCard("bottom", player1.held_card);
+      } else if (heldCardSprite) {
+        heldCardSprite.visible = false;
       }
     }
   }
@@ -129,16 +131,14 @@ if (gameContainer) {
       deckSprite.x -= cardWidth / 2 + 1;
     }
 
-    const isPlayable = playableCards.includes("deck");
-
-    if (isPlayable) {
+    if (playableCards.includes("deck")) {
       makePlayable(deckSprite);
     }
 
     app.stage.addChild(deckSprite);
 
     if (prevSprite) {
-      app.stage.removeChild(prevSprite);
+      prevSprite.visible = false;
     }
   }
 
@@ -146,7 +146,7 @@ if (gameContainer) {
   const tableCardY = gameHeight / 2;
 
   function drawTableCard(cardName, isPlayable = false) {
-    const prevTableCardSprites = [...tableCardSprites];
+    const prevSprites = [...tableCardSprites];
 
     const sprite = makeCardSprite(cardName, tableCardX, tableCardY);
     sprite.cardPlace = "table";
@@ -158,8 +158,8 @@ if (gameContainer) {
     tableCardSprites.push(sprite);
     app.stage.addChild(sprite);
 
-    for (const sprite of prevTableCardSprites) {
-      app.stage.removeChild(sprite);
+    for (const prev of prevSprites) {
+      prev.visible = false;
     }
   }
 
@@ -169,13 +169,11 @@ if (gameContainer) {
     const card1 = game.table_cards[0];
     const card2 = game.table_cards[1];
 
-    const isPlayable = playableCards.includes("table");
-
     if (card2) drawTableCard(card2);
-    if (card1) drawTableCard(card1, isPlayable);
+    if (card1) drawTableCard(card1, playableCards.includes("table"));
 
-    for (let sprite of prevSprites) {
-      app.stage.removeChild(sprite);
+    for (let prev of prevSprites) {
+      prev.visible = false;
     }
   }
 
@@ -227,9 +225,7 @@ if (gameContainer) {
       sprite.cardPlace = "hand";
       sprite.handIndex = i;
 
-      const isPlayable = playableCards.includes(`hand_${i}`);
-
-      if (isPlayable) {
+      if (playableCards.includes(`hand_${i}`)) {
         makePlayable(sprite);
       }
 
@@ -237,8 +233,8 @@ if (gameContainer) {
       app.stage.addChild(sprite);
     }
 
-    for (const sprite of prevSprites) {
-      app.stage.removeChild(sprite);
+    for (const prev of prevSprites) {
+      prev.visible = false;
     }
   }
 
@@ -265,14 +261,13 @@ if (gameContainer) {
     heldCardSprite = sprite;
     app.stage.addChild(sprite);
 
-    const isPlayable = playableCards.includes("held");
-
-    if (isPlayable) {
+    if (playableCards.includes("held")) {
       makePlayable(sprite);
     }
 
     if (prevSprite) {
-      app.stage.removeChild(prevSprite);
+      prevSprite.visible = false;
+      // app.stage.removeChild(prevSprite);
     }
 
     return sprite;
@@ -296,20 +291,20 @@ if (gameContainer) {
     }
   }
 
-  function isHandCardPlayable(index) {
+  function onHandClick(index) {
+    let event;
+
     switch (game.status) {
       case "flip2":
       case "flip":
-        return !player1.hand[index]["face_up?"];
-      default:
-        return false;
-    }
-  }
+        event = {action: "flip", game_id: gameId, player_id: player1.id, hand_index: index};
+        channel.push("game_event", event);
+        break;
 
-  function onHandClick(index) {
-    if (isHandCardPlayable(index)) {
-      const event = {action: "flip", game_id: gameId, player_id: player1.id, hand_index: index};
-      channel.push("game_event", event);
+      case "hold":
+        event = {action: "swap", game_id: gameId, player_id: player1.id, hand_index: index}
+        channel.push("game_event", event);
+        break;
     }
   }
 

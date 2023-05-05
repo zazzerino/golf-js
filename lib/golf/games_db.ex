@@ -83,7 +83,7 @@ defmodule Golf.GamesDb do
     end)
   end
 
-  defp update_player(players, player) do
+  defp replace_player(players, player) do
     Enum.map(
       players,
       fn p -> if p.id == player.id, do: player, else: p end
@@ -104,7 +104,7 @@ defmodule Golf.GamesDb do
       |> Ecto.Multi.insert(:event, event)
       |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand}))
       |> Ecto.Multi.update(:game, fn %{player: player} ->
-        players = update_player(game.players, player)
+        players = replace_player(game.players, player)
         status = if all_two_face_up?(players), do: :take, else: :flip2
         Game.changeset(game, %{status: status})
       end)
@@ -136,27 +136,6 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  # def handle_game_event(
-  #       %Game{status: :take} = game,
-  #       %Player{} = player,
-  #       %Event{action: :take_from_table} = event
-  #     ) do
-  #   [card | table_cards] = game.table_cards
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
-  #     |> Ecto.Multi.update(
-  #       :game,
-  #       Game.changeset(game, %{status: :hold, table_cards: table_cards})
-  #     )
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
   def handle_game_event(%Game{status: :hold} = game, %Event{action: :discard} = event) do
     player = find_player(game.players, event.player_id)
     card = player.held_card
@@ -172,6 +151,103 @@ defmodule Golf.GamesDb do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:event, event)
     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: nil}))
+    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn}))
+    |> Repo.transaction()
+  end
+
+  def handle_game_event(%Game{status: :flip} = game, %Event{action: :flip} = event) do
+    player = find_player(game.players, event.player_id)
+    hand = flip_card(player.hand, event.hand_index)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand}))
+    |> Ecto.Multi.update(:game, fn %{player: player} ->
+      players = replace_player(game.players, player)
+
+      {status, turn} =
+        cond do
+          all_players_all_face_up?(players) ->
+            {:over, game.turn}
+
+          all_face_up?(player.hand) ->
+            {:last_take, game.turn + 1}
+
+          true ->
+            {:take, game.turn + 1}
+        end
+
+      Game.changeset(game, %{status: status, turn: turn})
+    end)
+    |> Repo.transaction()
+  end
+
+  def handle_game_event(%Game{status: :hold} = game, %Event{action: :swap} = event) do
+    player = find_player(game.players, event.player_id)
+    {card, hand} = swap_card(player.hand, player.held_card, event.hand_index)
+    table_cards = [card | game.table_cards]
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand, held_card: nil}))
+    |> Ecto.Multi.update(:game, fn %{player: player} ->
+      players = replace_player(game.players, player)
+
+      {status, turn} =
+        cond do
+          all_players_all_face_up?(players) ->
+            {:over, game.turn}
+
+          all_face_up?(player.hand) ->
+            {:last_take, game.turn + 1}
+
+          true ->
+            {:take, game.turn + 1}
+        end
+
+      Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn})
+    end)
+    |> Repo.transaction()
+  end
+
+  def handle_game_event(%Game{status: :last_take} = game, %Event{action: :take_from_deck} = event) do
+    player = find_player(game.players, event.player_id)
+    {:ok, card, deck} = deal_from_deck(game.deck)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
+    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :last_hold, deck: deck}))
+    |> Repo.transaction()
+  end
+
+  def handle_game_event(%Game{status: :last_take} = game, %Event{action: :take_from_table} = event) do
+    player = find_player(game.players, event.player_id)
+    [card | table_cards] = game.table_cards
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
+    |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :last_hold, table_cards: table_cards}))
+    |> Repo.transaction()
+  end
+
+  def handle_game_event(%Game{status: :last_hold} = game, %Event{action: :discard} = event) do
+    player = find_player(game.players, event.player_id)
+    card = player.held_card
+    table_cards = [card | game.table_cards]
+    other_players = Enum.reject(game.players, &(&1.id == player.id))
+
+    {status, turn, hand} =
+      if all_players_all_face_up?(other_players) do
+        {:over, game.turn, flip_all(player.hand)}
+      else
+        {:last_take, game.turn + 1, player.hand}
+      end
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:event, event)
+    |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: nil, hand: hand}))
     |> Ecto.Multi.update(:game, Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn}))
     |> Repo.transaction()
   end
@@ -291,144 +367,6 @@ defmodule Golf.GamesDb do
   #     update: [set: [deleted?: true]]
   #   )
   #   |> Repo.update_all([])
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :flip} = game,
-  #       %Player{} = player,
-  #       %Event{action: :flip} = event
-  #     ) do
-  #   hand = flip_card(player.hand, event.hand_index)
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand}))
-  #     |> Ecto.Multi.update(:game, fn %{player: player} ->
-  #       players = replace_player(game.players, player)
-
-  #       {status, turn} =
-  #         cond do
-  #           all_players_all_face_up?(players) ->
-  #             {:over, game.turn}
-
-  #           all_face_up?(player.hand) ->
-  #             {:last_take, game.turn + 1}
-
-  #           true ->
-  #             {:take, game.turn + 1}
-  #         end
-
-  #       Game.changeset(game, %{status: status, turn: turn})
-  #     end)
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :last_take} = game,
-  #       %Player{} = player,
-  #       %Event{action: :take_from_deck} = event
-  #     ) do
-  #   {:ok, card, deck} = deal_from_deck(game.deck)
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
-  #     |> Ecto.Multi.update(:game, Game.changeset(game, %{status: :last_hold, deck: deck}))
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :last_take} = game,
-  #       %Player{} = player,
-  #       %Event{action: :take_from_table} = event
-  #     ) do
-  #   [card | table_cards] = game.table_cards
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: card}))
-  #     |> Ecto.Multi.update(
-  #       :game,
-  #       Game.changeset(game, %{status: :last_hold, table_cards: table_cards})
-  #     )
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :last_hold} = game,
-  #       %Player{} = player,
-  #       %Event{action: :discard} = event
-  #     ) do
-  #   card = player.held_card
-  #   table_cards = [card | game.table_cards]
-  #   other_players = Enum.reject(game.players, fn p -> p.id == player.id end)
-
-  #   {status, turn, hand} =
-  #     if all_players_all_face_up?(other_players) do
-  #       {:over, game.turn, flip_all(player.hand)}
-  #     else
-  #       {:last_take, game.turn + 1, player.hand}
-  #     end
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{held_card: nil, hand: hand}))
-  #     |> Ecto.Multi.update(
-  #       :game,
-  #       Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn})
-  #     )
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
-  # end
-
-  # def handle_game_event(
-  #       %Game{status: :hold} = game,
-  #       %Player{} = player,
-  #       %Event{action: :swap} = event
-  #     ) do
-  #   {card, hand} = swap_card(player.hand, player.held_card, event.hand_index)
-  #   table_cards = [card | game.table_cards]
-
-  #   {:ok, multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(:event, event)
-  #     |> Ecto.Multi.update(:player, Player.changeset(player, %{hand: hand, held_card: nil}))
-  #     |> Ecto.Multi.update(:game, fn %{player: player} ->
-  #       players = replace_player(game.players, player)
-
-  #       {status, turn} =
-  #         cond do
-  #           all_players_all_face_up?(players) ->
-  #             {:over, game.turn}
-
-  #           all_face_up?(player.hand) ->
-  #             {:last_take, game.turn + 1}
-
-  #           true ->
-  #             {:take, game.turn + 1}
-  #         end
-
-  #       Game.changeset(game, %{status: status, table_cards: table_cards, turn: turn})
-  #     end)
-  #     |> Repo.transaction()
-
-  #   broadcast_game_event(game.id)
-  #   {:ok, multi}
   # end
 
   # def game_exists?(game_id) do

@@ -5,7 +5,6 @@ import "./user_socket";
 import "./game";
 
 const hideElem = el => el.style.display = "none";
-
 const flashEl = document.querySelector("#flash");
 
 if (flashEl) {
