@@ -8,7 +8,7 @@ const gameHeight = 600;
 
 const cardSvgWidth = 240;
 const cardSvgHeight = 336;
-const cardScale = 0.25;
+const cardScale = 0.245;
 
 const cardWidth = cardSvgWidth * cardScale;
 const cardHeight = cardSvgHeight * cardScale;
@@ -122,15 +122,24 @@ if (gameContainer) {
     for (const player of players) {
       if (player.hand.length) {
         drawHand("bottom", player.hand);
+        drawHand("top", player.hand);
+        drawHand("left", player.hand);
+        drawHand("right", player.hand);
 
         if (player.held_card) {
           drawHeldCard("bottom", player.held_card);
+          drawHeldCard("top", player.held_card);
+          drawHeldCard("left", player.held_card);
+          drawHeldCard("right", player.held_card);
         } else if (heldCardSprite) {
           heldCardSprite.visible = false;
         }
       }
 
       drawPlayerInfo(player, "bottom");
+      drawPlayerInfo(player, "top");
+      drawPlayerInfo(player, "left");
+      drawPlayerInfo(player, "right");
     }
   }
 
@@ -230,15 +239,35 @@ if (gameContainer) {
   }
 
   function handCoord(position) {
-    let x, y;
+    let x, y, angle;
 
     switch (position) {
       case "bottom":
         x = gameWidth / 2;
         y = gameHeight - cardHeight * 1.4;
+        angle = 0;
+        break;
+
+      case "top":
+        x = gameWidth / 2;
+        y = cardHeight * 1.4;
+        angle = 180;
+        break;
+
+      case "left":
+        x = cardHeight * 1.4;
+        y = gameHeight / 2;
+        angle = 90;
+        break;
+
+      case "right":
+        x = gameWidth - cardHeight * 1.4;
+        y = gameHeight / 2;
+        angle = 270;
+        break;
     }
 
-    return {x, y};
+    return {x, y, angle};
   }
 
   function drawHand(position, cards) {
@@ -267,9 +296,10 @@ if (gameContainer) {
       container.addChild(sprite);
     }
 
-    const {x, y} = handCoord(position);
+    const {x, y, angle} = handCoord(position);
     container.x = x;
     container.y = y;
+    container.angle = angle;
 
     handContainers[position] = container;
     app.stage.addChild(container);
@@ -282,24 +312,44 @@ if (gameContainer) {
   }
 
   function heldCardCoord(position) {
-    let x, y;
+    let x, y, angle;
 
     switch (position) {
       case "bottom":
         x = gameWidth / 2 + cardWidth * 2.5;
         y = gameHeight - cardHeight * 1.4;
+        angle = 0;
+        break;
+
+      case "top":
+        x = gameWidth / 2 - cardWidth * 2.5;
+        y = cardHeight * 1.4;
+        angle = 180;
+        break;
+
+      case "left":
+        x = cardHeight * 1.4;
+        y = gameHeight / 2 + cardWidth * 2.5;
+        angle = 90;
+        break;
+
+      case "right":
+        x = gameWidth - cardHeight * 1.4;
+        y = gameHeight / 2 - cardWidth * 2.5;
+        angle = 270;
         break;
     }
 
-    return {x, y};
+    return {x, y, angle};
   }
 
   function drawHeldCard(position, card) {
     const prevSprite = heldCardSprite;
 
-    const {x, y} = heldCardCoord(position);
+    const {x, y, angle} = heldCardCoord(position);
     const sprite = makeCardSprite(card, x, y);
     sprite.cardPlace = "held";
+    sprite.angle = angle;
     
     heldCardSprite = sprite;
     app.stage.addChild(sprite);
@@ -309,17 +359,42 @@ if (gameContainer) {
     }
 
     if (prevSprite) {
-      prevSprite.visible = false;
+      // prevSprite.visible = false;
     }
 
     return sprite;
   }
 
   function playerInfoCoord(position) {
+    let x, y, angle;
+
     switch (position) {
       case "bottom":
-        return {x: gameWidth / 2, y: gameHeight - gameHeight * 0.025};
+        x = gameWidth / 2;
+        y = gameHeight - gameHeight * 0.025;
+        angle = 0;
+        break;
+
+      case "top":
+        x = gameWidth / 2;
+        y = gameHeight * 0.025;
+        angle = 0;
+        break;
+
+      case "left":
+        x = gameWidth * 0.025;
+        y = gameHeight / 2;
+        angle = 90;
+        break;
+
+      case "right":
+        x = gameWidth - gameWidth * 0.025;
+        y = gameHeight / 2;
+        angle = 270;
+        break;
     }
+
+    return {x, y, angle};
   }
 
   const playerInfoStyle = {
@@ -335,9 +410,10 @@ if (gameContainer) {
 
     const text = new PIXI.Text(playerInfoText(player), playerInfoStyle);
     text.anchor.set(0.5);
-    const {x, y} = playerInfoCoord(position);
+    const {x, y, angle} = playerInfoCoord(position);
     text.x = x;
     text.y = y;
+    text.angle = angle;
 
     playerInfoSprites[position] = text;
     app.stage.addChild(text);
