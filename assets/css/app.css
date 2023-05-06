@@ -33,3 +33,7 @@ main.section {
 .start-game-button {
   visibility: hidden;
 }
+
+.join-game-button {
+  visibility: hidden;
+}

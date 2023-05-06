@@ -35,6 +35,11 @@ defmodule Golf.GamesDb do
     )
   end
 
+  def game_exists?(game_id) do
+    from(g in Game, where: [id: ^game_id])
+    |> Repo.exists?()
+  end
+
   # def get_game(game_id) do
   #   Repo.get(Game, game_id)
   #   |> Repo.preload(
@@ -50,6 +55,11 @@ defmodule Golf.GamesDb do
 
   def get_players(game_id) do
     players_query(game_id)
+    |> Repo.all()
+  end
+
+  def get_join_requests(game_id) do
+    join_requests_query(game_id)
     |> Repo.all()
   end
 
@@ -106,7 +116,7 @@ defmodule Golf.GamesDb do
     Enum.find(players, &(&1.id == player_id))
   end
 
-  def handle_game_event(%Game{status: :flip2} = game, players, %Event{action: :flip} = event) do
+  def handle_game_event(%Game{status: :flip2} = game, %Event{action: :flip} = event, players) do
     player = find_player(players, event.player_id)
 
     if num_cards_face_up(player.hand) < 2 do
@@ -128,8 +138,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :take} = game,
-        players,
-        %Event{action: :take_from_deck} = event
+        %Event{action: :take_from_deck} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     {:ok, card, deck} = deal_from_deck(game.deck)
@@ -143,8 +153,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :take} = game,
-        players,
-        %Event{action: :take_from_table} = event
+        %Event{action: :take_from_table} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     [card | table_cards] = game.table_cards
@@ -156,7 +166,7 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :hold} = game, players, %Event{action: :discard} = event) do
+  def handle_game_event(%Game{status: :hold} = game, %Event{action: :discard} = event, players) do
     player = find_player(players, event.player_id)
     card = player.held_card
     table_cards = [card | game.table_cards]
@@ -178,7 +188,7 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
-  def handle_game_event(%Game{status: :flip} = game, players, %Event{action: :flip} = event) do
+  def handle_game_event(%Game{status: :flip} = game, %Event{action: :flip} = event, players) do
     player = find_player(players, event.player_id)
     hand = flip_card(player.hand, event.hand_index)
 
@@ -207,8 +217,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :hold} = game,
-        players,
-        %Event{action: :swap} = event
+        %Event{action: :swap} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     {card, hand} = swap_card(player.hand, player.held_card, event.hand_index)
@@ -239,8 +249,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :last_take} = game,
-        players,
-        %Event{action: :take_from_deck} = event
+        %Event{action: :take_from_deck} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     {:ok, card, deck} = deal_from_deck(game.deck)
@@ -254,8 +264,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :last_take} = game,
-        players,
-        %Event{action: :take_from_table} = event
+        %Event{action: :take_from_table} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     [card | table_cards] = game.table_cards
@@ -272,8 +282,8 @@ defmodule Golf.GamesDb do
 
   def handle_game_event(
         %Game{status: :last_hold} = game,
-        players,
-        %Event{action: :discard} = event
+        %Event{action: :discard} = event,
+        players
       ) do
     player = find_player(players, event.player_id)
     card = player.held_card
@@ -412,11 +422,6 @@ defmodule Golf.GamesDb do
   #     update: [set: [deleted?: true]]
   #   )
   #   |> Repo.update_all([])
-  # end
-
-  # def game_exists?(game_id) do
-  #   from(g in Game, where: [id: ^game_id])
-  #   |> Repo.exists?()
   # end
 
   # def last_event_query(game_id) do

@@ -1,7 +1,7 @@
 import {socket} from "./user_socket";
 import * as PIXI from "pixi.js";
 import {OutlineFilter} from "@pixi/filter-outline";
-import {zip, rotate} from "./util";
+import {rotate} from "./util";
 
 const gameWidth = 600;
 const gameHeight = 600;
@@ -43,6 +43,7 @@ if (gameContainer) {
   let playerInfoSprites = {bottom: null, left: null, top: null, right: null};
 
   const startGameButton = document.querySelector(".start-game-button");
+  const joinGameButton = document.querySelector(".join-game-button");
 
   function onChannelJoin(payload) {
     console.log("Joined game", payload);
@@ -67,12 +68,22 @@ if (gameContainer) {
 
     drawGame();
 
-    if (game.status === "init" && player && player["host?"]) {
-      startGameButton.addEventListener("click", _ => {
-        channel.push("start_game", {});
-      });
+    if (game.status === "init") {
+      if (player && player["host?"]) {
+        startGameButton.addEventListener("click", _ => {
+          channel.push("start_game", {});
+          startGameButton.remove();
+        })
+        startGameButton.style.visibility = "visible";
+      } else {
+        startGameButton.remove();
+      }
+    } else {
+      startGameButton.remove();
 
-      startGameButton.style.visibility = "visible";
+      if (!player) {
+        joinGameButton.style.visibility = "visible";
+      }
     }
   }
 
@@ -97,7 +108,9 @@ if (gameContainer) {
 
     deckSprite.visible = false;
     drawGame();
+
     startGameButton.style.visibility = "hidden";
+    joinGameButton.style.visibility = "hidden";
   });
 
   channel.on("game_event", payload => {
@@ -201,7 +214,6 @@ if (gameContainer) {
     if (card1) drawTableCard(card1, playableCards.includes("table"));
 
     for (const prev of prevSprites) {
-      console.log("prev", prev);
       prev.visible = false;
     }
   }

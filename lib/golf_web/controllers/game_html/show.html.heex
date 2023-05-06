@@ -1,5 +1,41 @@
-<h2 class="block title">Game <%= @game.id %></h2>
+<h2 class="block title">Game <%= @game_id %></h2>
 
 <div class="block game-container"></div>
 
-<button class="block start-game-button button is-link">Start Game</button>
+<div class="game-controls block">
+  <button class="start-game-button button is-link">
+    Start Game
+  </button>
+
+  <button class="join-game-button button is-link">
+    Join Game
+  </button>
+</div>
+
+<div class="block join-requests-table">
+  <h4 class="title is-5">Join Requests</h4>
+  <%= if Enum.empty?(@join_requests) do %>
+    <p>No pending join requests.</p>
+  <% else %>
+    <table class="table"></table>
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Username</th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= for req <- @join_requests do %>
+        <tr>
+          <td><%= req.user_id %></td>
+          <td><%= req.username %></td>
+          <td>
+            <button class="confirm-join-request-button button is-primary" data-request-id={req.id}>
+              Confirm
+            </button>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  <% end %>
+</div>

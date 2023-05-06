@@ -5,7 +5,8 @@ defmodule GolfWeb.UserAuth do
   alias Golf.Users
   alias Golf.Users.UserToken
 
-  @max_age 60 * 60 * 24 * 60 # 60 days
+  # 60 days
+  @max_age 60 * 60 * 24 * 60
   @user_cookie "_golf_web_user"
   @salt "user auth"
   @cookie_options [sign: true, max_age: @max_age, same_site: "Lax"]

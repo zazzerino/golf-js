@@ -10,9 +10,16 @@ defmodule GolfWeb.GameChannel do
     game = GamesDb.get_game(game_id)
     players = GamesDb.get_players(game_id) |> put_scores()
     playable_cards = Games.all_playable_cards(game, players)
+    join_requests = GamesDb.get_join_requests(game_id)
 
-    {:ok, %{user_id: user_id, game: game, players: players, playable_cards: playable_cards},
-     assign(socket, game: game, players: players)}
+    {:ok,
+     %{
+       user_id: user_id,
+       game: game,
+       players: players,
+       playable_cards: playable_cards,
+       join_requests: join_requests
+     }, assign(socket, game: game, players: players)}
   end
 
   @impl true
@@ -41,7 +48,7 @@ defmodule GolfWeb.GameChannel do
     payload = payload |> to_atom_key_map() |> action_to_atom()
     event = struct(Golf.Games.Event, payload)
 
-    {:ok, _} = GamesDb.handle_game_event(game, players, event)
+    {:ok, _} = GamesDb.handle_game_event(game, event, players)
 
     game = GamesDb.get_game(game.id)
     players = GamesDb.get_players(game.id) |> put_scores()
