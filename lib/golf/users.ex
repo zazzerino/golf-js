@@ -21,9 +21,8 @@ defmodule Golf.Users do
     Repo.insert(%User{})
   end
 
-  def create_user_token(user_id, token) do
-    %UserToken{user_id: user_id, token: token}
-    |> Repo.insert()
+  def insert_user_token(user_token) do
+    Repo.insert(user_token)
   end
 
   def update_username(user_id, username) do

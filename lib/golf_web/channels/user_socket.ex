@@ -36,7 +36,7 @@ defmodule GolfWeb.UserSocket do
   # performing token verification on connect.
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
-    case Phoenix.Token.verify(socket, "user socket", token) do
+    case Phoenix.Token.verify(socket, "user auth", token) do
       {:ok, user_id} ->
         {:ok, assign(socket, :user_id, user_id)}
 
@@ -53,7 +53,7 @@ defmodule GolfWeb.UserSocket do
   # all active sockets and channels for a given user:
   #
   #     Elixir.GolfWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
-  #
+
   # Returning `nil` makes this socket anonymous.
   @impl true
   def id(%{assigns: %{user_id: user_id}}) do
