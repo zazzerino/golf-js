@@ -8,7 +8,7 @@ const gameHeight = 600;
 
 const cardSvgWidth = 240;
 const cardSvgHeight = 336;
-const cardScale = 0.245;
+const cardScale = 0.25;
 
 const cardWidth = cardSvgWidth * cardScale;
 const cardHeight = cardSvgHeight * cardScale;
@@ -61,6 +61,10 @@ if (gameContainer) {
       players = rotate(players, playerIndex);
     }
 
+    for (let i = 0; i < players.length; i++) {
+      players[i].position = positions[i];
+    }
+
     drawGame();
 
     if (game.status === "init" && player && player["host?"]) {
@@ -87,6 +91,10 @@ if (gameContainer) {
       players = rotate(players, playerIndex);
     }
 
+    for (let i = 0; i < players.length; i++) {
+      players[i].position = positions[i];
+    }
+
     deckSprite.visible = false;
     drawGame();
     startGameButton.style.visibility = "hidden";
@@ -101,6 +109,10 @@ if (gameContainer) {
     if (player) {
       playableCards = payload.playable_cards[player.id];
       players = rotate(players, playerIndex);
+    }
+
+    for (let i = 0; i < players.length; i++) {
+      players[i].position = positions[i];
     }
 
     drawGame();
@@ -121,25 +133,16 @@ if (gameContainer) {
 
     for (const player of players) {
       if (player.hand.length) {
-        drawHand("bottom", player.hand);
-        drawHand("top", player.hand);
-        drawHand("left", player.hand);
-        drawHand("right", player.hand);
+        drawHand(player.position, player.hand);
 
         if (player.held_card) {
-          drawHeldCard("bottom", player.held_card);
-          drawHeldCard("top", player.held_card);
-          drawHeldCard("left", player.held_card);
-          drawHeldCard("right", player.held_card);
+          drawHeldCard(player.position, player.held_card);
         } else if (heldCardSprite) {
           heldCardSprite.visible = false;
         }
       }
 
-      drawPlayerInfo(player, "bottom");
-      drawPlayerInfo(player, "top");
-      drawPlayerInfo(player, "left");
-      drawPlayerInfo(player, "right");
+      drawPlayerInfo(player);
     }
   }
 
@@ -359,7 +362,7 @@ if (gameContainer) {
     }
 
     if (prevSprite) {
-      // prevSprite.visible = false;
+      prevSprite.visible = false;
     }
 
     return sprite;
@@ -405,11 +408,13 @@ if (gameContainer) {
 
   const playerInfoText = player => `${player.username}: ${player.score}`;
 
-  function drawPlayerInfo(player, position) {
+  function drawPlayerInfo(player) {
+    const position = player.position;
     const prev = playerInfoSprites[position];
 
     const text = new PIXI.Text(playerInfoText(player), playerInfoStyle);
     text.anchor.set(0.5);
+
     const {x, y, angle} = playerInfoCoord(position);
     text.x = x;
     text.y = y;
