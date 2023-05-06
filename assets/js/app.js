@@ -2,7 +2,7 @@
 import "phoenix_html";
 import "../css/app.css";
 import "./user_socket";
-// import "./game";
+import "./game";
 
 const hideElem = el => el.style.display = "none";
 const flashEl = document.querySelector("#flash");

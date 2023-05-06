@@ -5,12 +5,12 @@ defmodule GolfWeb.UserAuth do
   alias Golf.Users
   alias Golf.Users.UserToken
 
-  @max_age 60 * 60 * 24 * 60
+  @max_age 60 * 60 * 24 * 60 # 60 days
   @user_cookie "_golf_web_user"
   @salt "user auth"
   @cookie_options [sign: true, max_age: @max_age, same_site: "Lax"]
 
-  def fetch_user_id(conn, _) do
+  def fetch_user(conn, _) do
     # check if token in session
     if token = get_session(conn, :user_token) do
       user = Users.get_user_by_token(token)

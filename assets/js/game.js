@@ -38,7 +38,7 @@ if (gameContainer) {
 
   let deckSprite;
   let tableCardSprites = []
-  let handSprites = {bottom: [], left: [], top: [], right: []};
+  let handContainers = {bottom: [], left: [], top: [], right: []};
   let heldCardSprite;
   let playerInfoSprites = {bottom: null, left: null, top: null, right: null};
 
@@ -53,7 +53,9 @@ if (gameContainer) {
     userId = payload.user_id;
     playerIndex = players.findIndex(p => p.user_id === userId);
 
-    if (playerIndex !== -1) {
+    const userIsPlaying = playerIndex !== -1;
+
+    if (userIsPlaying) {
       player = players[playerIndex];
       playableCards = payload.playable_cards[player.id];
       players = rotate(players, playerIndex);
@@ -75,7 +77,7 @@ if (gameContainer) {
     .receive("error", resp => console.log("Unable to join", resp));
 
   channel.on("game_started", payload => {
-    console.log("game started", payload)
+    console.log("game started", payload);
     game = payload.game;
     players = payload.players;
     positions = playerPositions(players.length);
@@ -186,69 +188,96 @@ if (gameContainer) {
     if (card2) drawTableCard(card2);
     if (card1) drawTableCard(card1, playableCards.includes("table"));
 
-    for (let prev of prevSprites) {
+    for (const prev of prevSprites) {
+      console.log("prev", prev);
       prev.visible = false;
     }
   }
 
-  function handCardCoord(position, index) {
-    let x = (gameWidth / 2) - cardWidth + (cardWidth * (index % 3));
-    let y;
+  function handCardCoord(index) {
+    let x = 0;
+    let y = 0;
 
-    if (position === "bottom") {
-      switch (index) {
-        case 0:
-        case 1:
-        case 2:
-          y = gameHeight - cardHeight * 1.5 - 8 - 25;
-          break;
+    // set x
+    switch (index) {
+      case 0:
+      case 3:
+        x = -cardWidth - 5;
+        break;
 
-        default:
-          y = gameHeight - cardHeight / 2 - 4 - 25;
-          break;
-      }
+      case 2:
+      case 5:
+        x = cardWidth + 5;
+        break;
+    }
+   
+    // set y
+    switch (index) {
+      case 0:
+      case 1:
+      case 2:
+        y = -cardHeight / 2 - 2;
+        break;
 
-      switch (index) {
-        case 0:
-        case 3:
-          x -= 4;
-          break;
-
-        case 2:
-        case 5:
-          x += 4;
-          break;
-      }
+      case 3:
+      case 4:
+      case 5:
+        y = cardHeight / 2 + 2;
+        break;
     }
 
-    return { x, y };
+    return {x, y};
+  }
+
+  function handCoord(position) {
+    let x, y;
+
+    switch (position) {
+      case "bottom":
+        x = gameWidth / 2;
+        y = gameHeight - cardHeight * 1.4;
+    }
+
+    return {x, y};
   }
 
   function drawHand(position, cards) {
-    const prevSprites = [...handSprites[position]];
+    const prevContainer = handContainers[position];
 
-    for (let i = 0; i < 6; i++) {
+    const container = new PIXI.Container();
+    container.pivot.x = container.width / 2;
+    container.pivot.y = container.height / 2;
+
+    for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
       const name = card["face_up?"] ? card.name : "2B";
 
       const sprite = makeCardSprite(name);
-      const {x, y} = handCardCoord(position, i);
-      sprite.x = x;
-      sprite.y = y;
-
       sprite.cardPlace = "hand";
       sprite.handIndex = i;
+
+      const {x, y} = handCardCoord(i);
+      sprite.x = x;
+      sprite.y = y;
 
       if (playableCards.includes(`hand_${i}`)) {
         makePlayable(sprite);
       }
 
-      handSprites[position][i] = sprite;
-      app.stage.addChild(sprite);
+      container.addChild(sprite);
     }
 
-    for (const prev of prevSprites) {
-      prev.visible = false;
+    const {x, y} = handCoord(position);
+    container.x = x;
+    container.y = y;
+
+    handContainers[position] = container;
+    app.stage.addChild(container);
+
+    if (prevContainer.children) {
+      for (const sprite of prevContainer.children) {
+        sprite.visible = false;
+      }
     }
   }
 
@@ -258,7 +287,7 @@ if (gameContainer) {
     switch (position) {
       case "bottom":
         x = gameWidth / 2 + cardWidth * 2.5;
-        y = gameHeight - cardHeight;
+        y = gameHeight - cardHeight * 1.4;
         break;
     }
 
@@ -289,7 +318,7 @@ if (gameContainer) {
   function playerInfoCoord(position) {
     switch (position) {
       case "bottom":
-        return {x: gameWidth / 2, y: gameHeight - 15};
+        return {x: gameWidth / 2, y: gameHeight - gameHeight * 0.025};
     }
   }
 
