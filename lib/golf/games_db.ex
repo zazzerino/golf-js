@@ -74,6 +74,24 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
+  def insert_join_request(%JoinRequest{} = join_request) do
+    join_request
+    |> Repo.insert()
+  end
+
+  def confirm_join_request(%Game{} = game, %JoinRequest{} = join_request, num_players) do
+    player_turn = num_players
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:player, %Player{
+      game_id: game.id,
+      user_id: join_request.user_id,
+      turn: player_turn
+    })
+    |> Ecto.Multi.update(:join_request, JoinRequest.changeset(join_request, %{confirmed?: true}))
+    |> Repo.transaction()
+  end
+
   def start_game(%Game{status: :init} = game, players) do
     num_cards_to_deal = hand_size() * length(players)
     {cards, deck} = Enum.split(game.deck, num_cards_to_deal)
@@ -93,27 +111,6 @@ defmodule Golf.GamesDb do
     )
     |> update_player_hands(players, hands)
     |> Repo.transaction()
-  end
-
-  defp update_player_hands(multi, players, hands) do
-    changesets =
-      Enum.zip(players, hands)
-      |> Enum.map(fn {player, hand} -> Player.changeset(player, %{hand: hand}) end)
-
-    Enum.reduce(changesets, multi, fn cs, multi ->
-      Ecto.Multi.update(multi, {:player, cs.data.id}, cs)
-    end)
-  end
-
-  defp replace_player(players, player) do
-    Enum.map(
-      players,
-      fn p -> if p.id == player.id, do: player, else: p end
-    )
-  end
-
-  defp find_player(players, player_id) do
-    Enum.find(players, &(&1.id == player_id))
   end
 
   def handle_game_event(%Game{status: :flip2} = game, %Event{action: :flip} = event, players) do
@@ -307,6 +304,27 @@ defmodule Golf.GamesDb do
     |> Repo.transaction()
   end
 
+  defp update_player_hands(multi, players, hands) do
+    changesets =
+      Enum.zip(players, hands)
+      |> Enum.map(fn {player, hand} -> Player.changeset(player, %{hand: hand}) end)
+
+    Enum.reduce(changesets, multi, fn cs, multi ->
+      Ecto.Multi.update(multi, {:player, cs.data.id}, cs)
+    end)
+  end
+
+  defp replace_player(players, player) do
+    Enum.map(
+      players,
+      fn p -> if p.id == player.id, do: player, else: p end
+    )
+  end
+
+  defp find_player(players, player_id) do
+    Enum.find(players, &(&1.id == player_id))
+  end
+
   # pubsub broadcasts
 
   # def broadcast_game_created(game_id) do
@@ -387,28 +405,6 @@ defmodule Golf.GamesDb do
   # end
 
   # # db updates
-
-  # def make_join_request(%JoinRequest{} = join_request) do
-  #   {:ok, join_request} = Repo.insert(join_request)
-  #   broadcast_join_request(join_request)
-  #   {:ok, join_request}
-  # end
-
-  # def confirm_join_request(%Game{} = game, %JoinRequest{} = request) do
-  #   player_turn = length(game.players)
-
-  #   {:ok, %{player: player} = multi} =
-  #     Ecto.Multi.new()
-  #     |> Ecto.Multi.insert(
-  #       :player,
-  #       Ecto.build_assoc(game, :players, %{user_id: request.user_id, turn: player_turn})
-  #     )
-  #     |> Ecto.Multi.update(:join_request, JoinRequest.changeset(request, %{confirmed?: true}))
-  #     |> Repo.transaction()
-
-  #   broadcast_player_joined(game.id, player)
-  #   {:ok, multi}
-  # end
 
   # def insert_chat_message(%ChatMessage{} = message) do
   #   {:ok, message} = Repo.insert(message)

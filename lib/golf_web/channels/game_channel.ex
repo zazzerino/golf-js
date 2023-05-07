@@ -63,12 +63,11 @@ defmodule GolfWeb.GameChannel do
     {:noreply, assign(socket, game: game, players: players)}
   end
 
-  # defp get_game_data(game_id) do
-  #   game = GamesDb.get_game(game_id)
-  #   players = GamesDb.get_players(game_id)
-  #   playable_cards = Games.all_playable_cards(Map.put(game, :players, players))
-  #   %{game: game, players: players, playable_cards: playable_cards}
-  # end
+  @impl true
+  def handle_in("join_request", payload, socket) do
+    IO.inspect(payload, label: "JOIN REQUEST")
+    {:noreply, socket}
+  end
 
   defp to_atom_key_map(map) do
     for {key, val} <- map, into: %{} do

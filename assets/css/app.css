@@ -30,6 +30,10 @@ main.section {
   min-height: 600px;
 }
 
+/* .game-container > canvas {
+  transform: scale(50%);
+} */
+
 .start-game-button {
   visibility: hidden;
 }

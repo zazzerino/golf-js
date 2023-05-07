@@ -29,6 +29,7 @@ defmodule GolfWeb.UserAuth do
         conn
         |> assign(:user_id, user.id)
         |> assign(:user_token, token)
+        |> put_session(:user_token, token)
       else
         # otherwise, create a new user and token
         {:ok, user} = Users.create_user()
@@ -39,10 +40,10 @@ defmodule GolfWeb.UserAuth do
           |> Users.insert_user_token()
 
         conn
-        |> put_resp_cookie(@user_cookie, token, @cookie_options)
-        |> put_session(:user_token, token)
         |> assign(:user_id, user.id)
         |> assign(:user_token, token)
+        |> put_session(:user_token, token)
+        |> put_resp_cookie(@user_cookie, token, @cookie_options)
       end
     end
   end
