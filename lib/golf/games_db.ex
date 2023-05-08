@@ -40,6 +40,14 @@ defmodule Golf.GamesDb do
     |> Repo.exists?()
   end
 
+  def get_num_players(game_id) do
+    from(p in Player,
+      where: [game_id: ^game_id],
+      select: count()
+    )
+    |> Repo.one()
+  end
+
   # def get_game(game_id) do
   #   Repo.get(Game, game_id)
   #   |> Repo.preload(
@@ -56,6 +64,11 @@ defmodule Golf.GamesDb do
   def get_players(game_id) do
     players_query(game_id)
     |> Repo.all()
+  end
+
+  def get_join_request(request_id) do
+    from(jr in JoinRequest, where: [id: ^request_id])
+    |> Repo.one()
   end
 
   def get_join_requests(game_id) do

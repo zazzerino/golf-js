@@ -35,11 +35,25 @@ main.section {
 } */
 
 .start-game-button {
-  /* visibility: hidden; */
   display: none;
 }
 
 .join-game-button {
-  /* visibility: hidden; */
   display: none;
+}
+
+/* .join-requests {
+  display: none;
+} */
+
+.join-requests-table td {
+  vertical-align: middle;
+}
+
+.confirm-join-request {
+  display: none;
+}
+
+.confirm-join-request-button {
+  font-size: 0.85rem;
 }

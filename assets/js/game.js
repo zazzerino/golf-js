@@ -15,6 +15,10 @@ const CARD_HEIGHT = CARD_SVG_HEIGHT * CARD_SCALE;
 const startGameButton = document.querySelector(".start-game-button");
 const joinGameButton = document.querySelector(".join-game-button");
 
+const joinRequestsDiv = document.querySelector(".join-requests");
+const joinRequestsTable = document.querySelector(".join-requests-table");
+const confirmJoinButtons = document.querySelectorAll(".confirm-join-request");
+
 const gamePageRegex = /\/games\/(\d+)/;
 const pathnameMatch = location.pathname.match(gamePageRegex);
 
@@ -46,8 +50,9 @@ if (pathnameMatch) {
     players: [],
     playableCards: [],
     stage: app.stage,
-    sprites: sprites,
-    channel: channel,
+    sprites,
+    channel,
+    joinRequests: [],
   };
   window.state = state;
 
@@ -59,6 +64,8 @@ if (pathnameMatch) {
 
   channel.on("game_started", payload => onGameStarted(state, payload));
   channel.on("game_event", payload => onGameEvent(state, payload));
+  channel.on("join_request", payload => onJoinRequest(state, payload));
+  channel.on("player_joined", payload => onPlayerJoined(state, payload));
 }
 
 // channel callbacks
@@ -69,6 +76,7 @@ function onChannelJoin(state, payload) {
   state.userId = payload.user_id;
   state.game = payload.game;
   state.players = payload.players;
+  state.joinRequests = payload.join_requests;
 
   const playerIndex = state.players.findIndex(p => p.user_id === state.userId);
 
@@ -82,6 +90,20 @@ function onChannelJoin(state, payload) {
   setPlayerPositions(state.players);
   drawGame(state);
   setupGameButtons(state);
+
+  if (state.player && state.player["host?"]) {
+    setupConfirmJoinButtons();
+  }
+
+  if (state.game.status === "init") {
+    requestedJoin = state.joinRequests.find(jr => jr.user_id === state.userId);
+
+    if (requestedJoin) {
+      joinGameButton.style.display = "none";
+    }
+  } else {
+    joinRequestsDiv.style.display = "none";
+  }
 }
 
 function onGameStarted(state, payload) {
@@ -100,6 +122,7 @@ function onGameStarted(state, payload) {
 
   startGameButton.style.display = "none";
   joinGameButton.style.display = "none";
+  joinRequestsDiv.style.display = "none";
 }
 
 function onGameEvent(state, payload) {
@@ -110,6 +133,54 @@ function onGameEvent(state, payload) {
 
   if (state.player) {
     state.playableCards = payload.playable_cards[state.player.id];
+    rotateInPlace(state.players, state.player.index);
+  }
+
+  setPlayerPositions(state.players);
+  drawGame(state);
+}
+
+function onJoinRequest(state, payload) {
+  console.log("join request", payload);
+
+  state.joinRequests.push(payload);
+
+  const row = joinRequestsTable.insertRow();
+
+  const userIdCell = row.insertCell();
+  const userIdText = document.createTextNode(payload.user_id);
+  userIdCell.appendChild(userIdText);
+
+  const usernameCell = row.insertCell();
+  const usernameText = document.createTextNode(payload.username);
+  usernameCell.appendChild(usernameText);
+
+  if (state.player && state.player["host?"]) {
+    const confirmCell = row.insertCell();
+
+    const confirmButton = document.createElement("button");
+    confirmButton.innerText = "Confirm";
+    confirmButton.classList.add("confirm-join-request-button", "button", "is-primary");
+    confirmButton.setAttribute("data-request-id", payload.id);
+
+    confirmButton.addEventListener("click", event => {
+      handleConfirmJoin(state.channel, event)
+    });
+
+    confirmCell.appendChild(confirmButton);
+  }
+}
+
+function onPlayerJoined(state, payload) {
+  console.log("player joined", payload);
+
+  const player = payload.player;
+  state.players.push(player);
+
+  if (state.userId === player.user_id) {
+    state.player = player;
+    const playerIndex = state.players.findIndex(p => p.user_id === state.userId);
+    state.player.index = playerIndex;
     rotateInPlace(state.players, state.player.index);
   }
 
@@ -366,6 +437,14 @@ function onHeldClick(state) {
   state.stage.removeChild(state.sprites.heldCard);
 }
 
+function sendRequestJoin(state) {
+  state.channel.push("request_join", {game_id: state.game.id, user_id: state.userId});
+}
+
+function sendConfirmJoinRequest(channel, requestId) {
+  channel.push("confirm_join", {request_id: requestId});
+}
+
 // sprite coords
 
 const TABLE_CARD_X = GAME_WIDTH / 2 + CARD_WIDTH / 2 + 2;
@@ -534,9 +613,27 @@ function setupGameButtons(state) {
     joinGameButton.style.display = "block";
 
     joinGameButton.addEventListener("click", _ => {
-      console.log("join game");
+      sendRequestJoin(state);
+      joinGameButton.style.display = "none";
     });
   }
+}
+
+function setupConfirmJoinButtons() {
+  for (const button of confirmJoinButtons) {
+    button.style.display = "block";
+
+    button.addEventListener("click", event => {
+      handleConfirmJoin(state.channel, event)
+    });
+  }
+}
+
+function handleConfirmJoin(channel, event) {
+  const button = event.target;
+  const requestId = button.getAttribute("data-request-id");
+  sendConfirmJoinRequest(channel, requestId);
+  button.style.display = "none";
 }
 
 // utils

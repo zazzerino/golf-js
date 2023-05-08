@@ -25,11 +25,13 @@ defmodule GolfWeb.GameChannel do
   @impl true
   def handle_in("start_game", _, socket) do
     game = socket.assigns.game
-    players = socket.assigns.players
+    # players = socket.assigns.players
+    players = GamesDb.get_players(game.id)
     {:ok, _} = GamesDb.start_game(game, players)
 
     game = GamesDb.get_game(game.id)
     players = GamesDb.get_players(game.id) |> put_scores()
+    IO.inspect(players, label: "PLAYAS")
     playable_cards = Games.all_playable_cards(game, players)
 
     broadcast!(socket, "game_started", %{
@@ -64,8 +66,29 @@ defmodule GolfWeb.GameChannel do
   end
 
   @impl true
-  def handle_in("join_request", payload, socket) do
-    IO.inspect(payload, label: "JOIN REQUEST")
+  def handle_in("request_join", payload, socket) do
+    request = struct(Golf.Games.JoinRequest, to_atom_key_map(payload))
+    {:ok, request} = GamesDb.insert_join_request(request)
+    username = Golf.Users.get_username(request.user_id)
+    request = Map.put(request, :username, username)
+    broadcast!(socket, "join_request", request)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_in("confirm_join", %{"request_id" => request_id}, socket) do
+    game = socket.assigns.game
+
+    {request_id, _} = Integer.parse(request_id)
+    join_request = GamesDb.get_join_request(request_id)
+    num_players = GamesDb.get_num_players(game.id)
+
+    {:ok, %{player: player}} = GamesDb.confirm_join_request(game, join_request, num_players)
+    username = Golf.Users.get_username(player.user_id)
+    player = Map.put(player, :username, username) |> put_score()
+
+    broadcast!(socket, "player_joined", %{player: player})
+
     {:noreply, socket}
   end
 
@@ -79,7 +102,11 @@ defmodule GolfWeb.GameChannel do
     Map.update!(map, :action, &String.to_existing_atom/1)
   end
 
+  defp put_score(player) do
+    Map.put(player, :score, Games.score(player.hand))
+  end
+
   defp put_scores(players) do
-    Enum.map(players, fn p -> Map.put(p, :score, Games.score(p.hand)) end)
+    Enum.map(players, &put_score/1)
   end
 end

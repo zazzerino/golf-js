@@ -12,12 +12,9 @@
   </button>
 </div>
 
-<div class="block join-requests-table">
+<div class="join-requests block">
   <h4 class="title is-5">Join Requests</h4>
-  <%= if Enum.empty?(@join_requests) do %>
-    <p>No pending join requests.</p>
-  <% else %>
-    <table class="table"></table>
+  <table class="join-requests-table table">
     <thead>
       <tr>
         <th>User ID</th>
@@ -29,7 +26,7 @@
         <tr>
           <td><%= req.user_id %></td>
           <td><%= req.username %></td>
-          <td>
+          <td class="confirm-join-request">
             <button class="confirm-join-request-button button is-primary" data-request-id={req.id}>
               Confirm
             </button>
@@ -37,5 +34,5 @@
         </tr>
       <% end %>
     </tbody>
-  <% end %>
+  </table>
 </div>
