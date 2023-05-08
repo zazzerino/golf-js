@@ -35,9 +35,11 @@ main.section {
 } */
 
 .start-game-button {
-  visibility: hidden;
+  /* visibility: hidden; */
+  display: none;
 }
 
 .join-game-button {
-  visibility: hidden;
+  /* visibility: hidden; */
+  display: none;
 }
