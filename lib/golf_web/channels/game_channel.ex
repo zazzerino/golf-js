@@ -69,8 +69,10 @@ defmodule GolfWeb.GameChannel do
   def handle_in("request_join", payload, socket) do
     request = struct(Golf.Games.JoinRequest, to_atom_key_map(payload))
     {:ok, request} = GamesDb.insert_join_request(request)
+
     username = Golf.Users.get_username(request.user_id)
     request = Map.put(request, :username, username)
+
     broadcast!(socket, "join_request", request)
     {:noreply, socket}
   end
@@ -88,7 +90,6 @@ defmodule GolfWeb.GameChannel do
     player = Map.put(player, :username, username) |> put_score()
 
     broadcast!(socket, "player_joined", %{player: player})
-
     {:noreply, socket}
   end
 

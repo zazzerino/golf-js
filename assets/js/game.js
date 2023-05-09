@@ -287,7 +287,7 @@ function drawHand(state, position, hand) {
     sprite.x = x;
     sprite.y = y;
 
-    if (state.playableCards.includes(`hand_${i}`)) {
+    if (state.player && position === state.player.position && state.playableCards.includes(`hand_${i}`)) {
       makePlayable(state, sprite);
     }
 
