@@ -12,27 +12,26 @@
   </button>
 </div>
 
-<div class="join-requests block">
-  <h4 class="title is-5">Join Requests</h4>
-  <table class="join-requests-table table">
-    <thead>
+<table class="join-requests-table table block">
+  <caption class="title is-5">Join Requests</caption>
+  <thead>
+    <tr>
+      <th>User ID</th>
+      <th>Username</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for req <- @join_requests do %>
       <tr>
-        <th>User ID</th>
-        <th>Username</th>
+        <td><%= req.user_id %></td>
+        <td><%= req.username %></td>
+        <td class="confirm-join-request">
+          <button class="confirm-join-request-button button is-primary" data-request-id={req.id}>
+            Confirm
+          </button>
+        </td>
       </tr>
-    </thead>
-    <tbody>
-      <%= for req <- @join_requests do %>
-        <tr>
-          <td><%= req.user_id %></td>
-          <td><%= req.username %></td>
-          <td class="confirm-join-request">
-            <button class="confirm-join-request-button button is-primary" data-request-id={req.id}>
-              Confirm
-            </button>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-</div>
+    <% end %>
+  </tbody>
+</table>

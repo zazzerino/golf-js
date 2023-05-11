@@ -1,0 +1,28 @@
+<h2 class="title block">Games</h2>
+
+<table class="games-table table block">
+  <caption class="title is-5">Currently Playing</caption>
+  <thead>
+    <tr>
+      <th>Game ID</th>
+      <th>Created At</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for g <- @games do %>
+      <tr>
+        <td><%= g.id %></td>
+        <td><%= g.inserted_at %></td>
+        <td><a class="button is-link" href={~p"/games/#{g.id}"}>Go To</a></td>
+        <td :if={g.host?}>
+          <form action={~p"/games/delete/#{g.id}"} method="post">
+            <input name="_csrf_token" type="hidden" value={get_csrf_token()} />
+            <button class="button is-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

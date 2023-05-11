@@ -61,6 +61,14 @@ defmodule Golf.GamesDb do
     Repo.get(Game, game_id)
   end
 
+  def delete_game(game_id) do
+    from(g in Game,
+      where: [id: ^game_id],
+      update: [set: [deleted?: true]]
+    )
+    |> Repo.update_all([])
+  end
+
   def get_players(game_id) do
     players_query(game_id)
     |> Repo.all()
@@ -73,6 +81,26 @@ defmodule Golf.GamesDb do
 
   def get_join_requests(game_id) do
     join_requests_query(game_id)
+    |> Repo.all()
+  end
+
+  def get_user_games(user_id) do
+    from(u in User,
+      where: [id: ^user_id],
+      join: p in Player,
+      on: [user_id: u.id],
+      join: g in Game,
+      on: [id: p.game_id],
+      where: g.status != :over,
+      where: not g.deleted?,
+      order_by: g.inserted_at,
+      select: %{
+        id: g.id,
+        inserted_at: g.inserted_at,
+        status: g.status,
+        host?: p.host?
+      }
+    )
     |> Repo.all()
   end
 
@@ -397,40 +425,12 @@ defmodule Golf.GamesDb do
   #   |> Repo.one()
   # end
 
-  # def get_user_games(user_id) do
-  #   from(u in User,
-  #     where: [id: ^user_id],
-  #     join: p in Player,
-  #     on: [user_id: u.id],
-  #     join: g in Game,
-  #     on: [id: p.game_id],
-  #     where: g.status != :over,
-  #     where: not g.deleted?,
-  #     order_by: g.inserted_at,
-  #     select: %{
-  #       id: g.id,
-  #       inserted_at: g.inserted_at,
-  #       status: g.status,
-  #       host?: p.host?
-  #     }
-  #   )
-  #   |> Repo.all()
-  # end
-
   # # db updates
 
   # def insert_chat_message(%ChatMessage{} = message) do
   #   {:ok, message} = Repo.insert(message)
   #   broadcast_chat_message(message.id)
   #   {:ok, message}
-  # end
-
-  # def delete_game(game_id) do
-  #   from(g in Game,
-  #     where: [id: ^game_id],
-  #     update: [set: [deleted?: true]]
-  #   )
-  #   |> Repo.update_all([])
   # end
 
   # def last_event_query(game_id) do

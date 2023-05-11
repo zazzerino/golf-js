@@ -19,9 +19,13 @@ defmodule GolfWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/settings", PageController, :settings
+    post "/settings/update-username", PageController, :update_username
 
-    get "/games/:id", GameController, :show
+    get "/games", GameController, :index
     post "/games", GameController, :create
+    get "/games/:id", GameController, :show
+    post "/games/delete/:id", GameController, :delete
   end
 
   # Other scopes may use custom stacks.
